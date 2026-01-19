@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from google import genai  # Nova biblioteca oficial
+from google import genai # Certifique-se de que o pip install google-genai foi concluído
 from datetime import datetime
 from streamlit_mic_recorder import mic_recorder
 
