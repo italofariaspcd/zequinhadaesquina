@@ -83,7 +83,7 @@ with aba_busca:
 
 # --- ABA 2: MURAL DE TALENTOS ---
 with aba_mural:
-    st.header("🤝 Profissionais PCD em Tecnologia")
+    st.header("🤝 Profissionais PCD´s")
     try:
         conn = sqlite3.connect('zequinha.db')
         query = """
