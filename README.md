@@ -244,3 +244,58 @@ Para testar o motor de busca sem necessidade de Docker ou servidores externos:
 1. Instale as dependências:
    ```bash
    pip install geopy
+
+
+   # 🏠 Zequinha da Esquina - MVP Acessível
+
+O **Zequinha da Esquina** é uma solução de impacto social desenvolvida para conectar consumidores a lojistas locais em **Aracaju/SE**, com foco total em **acessibilidade (PCD)** e facilidade de uso via inteligência artificial.
+
+## ♿ Diferenciais de Acessibilidade
+Como um projeto idealizado por um profissional PCD que utiliza muletas, o app prioriza:
+* **Busca por Voz:** Facilita o uso para pessoas com mobilidade reduzida ou que não podem digitar no momento.
+* **Filtro de Acessibilidade:** Identifica no mapa apenas estabelecimentos com rampas e acesso adequado.
+* **Interface Simples:** Foco em legibilidade e alto contraste.
+
+## 🛠️ Stack Tecnológica
+* **Linguagem:** Python 3.14
+* **Interface:** Streamlit (Hospedado no Streamlit Cloud)
+* **Banco de Dados:** SQLite com integração Geoespacial (Geopy)
+* **IA/NLP:** Motor de classificação de intenção baseado em palavras-chave e processamento de áudio.
+
+## 🏗️ Arquitetura do Projeto
+1. **Coleta e Ingestão:** Scripts para mock de dados e integração de coordenadas reais de Aracaju.
+2. **Processamento:** Cálculo de distância geodésica em tempo real (Raio de 2km).
+3. **Frontend:** Dashboard interativo com mapa e integração direta via WhatsApp com o lojista.
+
+## 🚀 Como Executar Localmente
+# 🏠 Zequinha da Esquina - MVP Acessível
+
+O **Zequinha da Esquina** é uma solução de impacto social desenvolvida para conectar consumidores a lojistas locais em **Aracaju/SE**, com foco total em **acessibilidade (PCD)** e facilidade de uso via inteligência artificial.
+
+## ♿ Diferenciais de Acessibilidade
+Como um projeto idealizado por um profissional PCD que utiliza muletas, o app prioriza:
+* **Busca por Voz:** Facilita o uso para pessoas com mobilidade reduzida ou que não podem digitar no momento.
+* **Filtro de Acessibilidade:** Identifica no mapa apenas estabelecimentos com rampas e acesso adequado.
+* **Interface Simples:** Foco em legibilidade e alto contraste.
+
+## 🛠️ Stack Tecnológica
+* **Linguagem:** Python 3.14
+* **Interface:** Streamlit (Hospedado no Streamlit Cloud)
+* **Banco de Dados:** SQLite com integração Geoespacial (Geopy)
+* **IA/NLP:** Motor de classificação de intenção baseado em palavras-chave e processamento de áudio.
+
+## 🏗️ Arquitetura do Projeto
+1. **Coleta e Ingestão:** Scripts para mock de dados e integração de coordenadas reais de Aracaju.
+2. **Processamento:** Cálculo de distância geodésica em tempo real (Raio de 2km).
+3. **Frontend:** Dashboard interativo com mapa e integração direta via WhatsApp com o lojista.
+
+## 🚀 Como Executar Localmente
+```bash
+# Clone o repositório
+git clone [https://github.com/italofariaspcd/zequinhadaesquina.git](https://github.com/italofariaspcd/zequinhadaesquina.git)
+
+# Instale as dependências
+pip install -r requirements.txt
+
+# Execute o app
+streamlit run src/app_interface.py

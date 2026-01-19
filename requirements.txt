@@ -2,3 +2,4 @@ streamlit
 pandas
 geopy
 streamlit-mic-recorder
+google-generativeai

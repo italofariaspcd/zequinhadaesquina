@@ -1,104 +1,114 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
+import google.generativeai as genai
 from geopy.distance import geodesic
 from streamlit_mic_recorder import mic_recorder
 
-# --- CONFIGURAÇÕES DE ACESSIBILIDADE E PÁGINA ---
+# --- CONFIGURAÇÕES DE PÁGINA E ACESSIBILIDADE ---
 st.set_page_config(
-    page_title="Zequinha da Esquina - Acessível", 
+    page_title="Zequinha da Esquina - IA Acessível", 
     page_icon="♿",
     layout="wide"
 )
 
-# Estilo customizado para alto contraste e botões grandes
+# Estilo para alto contraste e botões grandes (UX para PCD)
 st.markdown("""
     <style>
-    .stButton>button { width: 100%; border-radius: 10px; height: 3.5em; font-weight: bold; }
-    .stTextInput>div>div>input { font-size: 1.2rem; }
+    .stButton>button { width: 100%; border-radius: 12px; height: 3.5em; font-weight: bold; background-color: #007bff; color: white; }
+    .stTextInput>div>div>input { font-size: 1.3rem; }
     </style>
     """, unsafe_allow_html=True)
 
-# --- FUNÇÕES DE APOIO (CÉREBRO DA IA) ---
-def classificar_demanda_ia(texto):
-    """Simula o motor de NLP para categorizar o pedido"""
-    texto = texto.lower()
-    if any(p in texto for p in ["pão", "café", "sonho", "bolacha"]): return "PADARIA"
-    if any(p in texto for p in ["remédio", "farmácia", "dor", "curativo"]): return "FARMÁCIA"
-    if any(p in texto for p in ["lâmpada", "torneira", "prego", "parafuso", "extensão"]): return "CONSTRUÇÃO"
-    if any(p in texto for p in ["carne", "churrasco", "frango", "sol"]): return "AÇOUGUE"
-    return "MERCADINHO"
+# --- CONFIGURAÇÃO DA IA (GEMINI) ---
+# Segurança: A chave deve ser configurada nos 'Secrets' do Streamlit Cloud
+try:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+except:
+    st.warning("⚠️ API Key do Gemini não detectada. Usando motor de busca simples.")
 
-# --- BARRA LATERAL (GPS E FILTROS) ---
-st.sidebar.header("📍 Localização e Filtros")
+def classificar_demanda_gemini(texto):
+    """Usa IA Generativa para entender a intenção do usuário"""
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        prompt = f"""
+        Você é o assistente do 'Zequinha da Esquina' em Aracaju. 
+        Sua tarefa é classificar o pedido do usuário em uma dessas categorias: 
+        PADARIA, MERCADINHO, FARMÁCIA, CONSTRUÇÃO ou AÇOUGUE.
+        Pedido: "{texto}"
+        Responda APENAS com o nome da categoria em maiúsculas.
+        """
+        response = model.generate_content(prompt)
+        return response.text.strip().upper()
+    except:
+        # Fallback caso a API falhe
+        texto = texto.lower()
+        if "pão" in texto: return "PADARIA"
+        if "remedio" in texto or "dor" in texto: return "FARMÁCIA"
+        return "MERCADINHO"
+
+# --- INTERFACE LATERAL ---
+st.sidebar.title("📍 Localização")
+# Coordenadas padrão: 13 de Julho, Aracaju
 lat_user = st.sidebar.number_input("Sua Latitude", value=-10.9255, format="%.4f")
 lon_user = st.sidebar.number_input("Sua Longitude", value=-37.0500, format="%.4f")
 raio = st.sidebar.slider("Raio de busca (km)", 0.5, 5.0, 2.0)
 
 st.sidebar.divider()
-st.sidebar.header("♿ Acessibilidade")
-apenas_pcd = st.sidebar.checkbox("Apenas lojas com acesso PCD", value=False)
+st.sidebar.header("♿ Filtro PCD")
+apenas_pcd = st.sidebar.checkbox("Apenas locais com rampa/acesso", value=True)
 
-# --- CORPO PRINCIPAL ---
+# --- CORPO DO APP ---
 st.title("🏠 Zequinha da Esquina")
-st.markdown("#### O que você precisa? Fale ou digite abaixo.")
+st.markdown("##### Encontre o que precisa falando ou digitando.")
 
-# Layout de busca híbrida (Voz + Texto)
-col_mic, col_txt = st.columns([1, 5])
+# Busca Híbrida
+col_mic, col_txt = st.columns([1, 4])
 
 with col_mic:
     st.write("Voz:")
-    audio_output = mic_recorder(
-        start_prompt="🎤 Iniciar",
-        stop_prompt="🛑 Parar",
-        key='recorder'
-    )
+    audio_output = mic_recorder(start_prompt="🎤", stop_prompt="🛑", key='recorder')
 
 with col_txt:
-    texto_transcrito = ""
-    if audio_output and audio_output['text']:
-        texto_transcrito = audio_output['text']
-        st.success(f"Entendi: \"{texto_transcrito}\"")
-    
-    busca = st.text_input("Sua procura:", value=texto_transcrito, placeholder="Ex: Preciso de pão de sal quentinho")
+    transcricao = audio_output['text'] if audio_output else ""
+    if transcricao: st.success(f"Entendi: {transcricao}")
+    busca = st.text_input("O que você procura?", value=transcricao, placeholder="Ex: Onde tem pão quentinho e rampa?")
 
-# --- PROCESSAMENTO E RESULTADOS ---
+# --- PROCESSAMENTO ---
 if busca:
-    categoria_identificada = classificar_demanda_ia(busca)
-    st.info(f"🔍 Categoria detectada: **{categoria_identificada}**")
+    categoria = classificar_demanda_gemini(busca)
+    st.info(f"🤖 IA identificou: **{categoria}**")
 
+    # Busca no banco SQLite local
     try:
-        # Busca no banco SQLite
         conn = sqlite3.connect('zequinha.db')
-        query = f"SELECT name, category, lat, lon, acessivel, whatsapp FROM stores WHERE category = '{categoria_identificada}'"
-        
+        query = f"SELECT name, lat, lon, acessivel, whatsapp FROM stores WHERE category = '{categoria}'"
         if apenas_pcd:
             query += " AND acessivel = 1"
-            
+        
         df = pd.read_sql_query(query, conn)
         conn.close()
 
         if not df.empty:
-            # Cálculo de distância
+            # Cálculo de distância real para o usuário de Aracaju
             df['distancia_km'] = df.apply(lambda r: geodesic((lat_user, lon_user), (r['lat'], r['lon'])).km, axis=1)
             vizinhos = df[df['distancia_km'] <= raio].sort_values('distancia_km')
 
             if not vizinhos.empty:
-                map_col, list_col = st.columns([2, 1])
-                with map_col:
+                col_mapa, col_lista = st.columns([2, 1])
+                with col_mapa:
                     st.map(vizinhos)
-                with list_col:
-                    st.write("### Lojas próximas")
+                with col_lista:
+                    st.write("### Vizinhos próximos")
                     for _, loja in vizinhos.iterrows():
-                        icon = "♿" if loja['acessivel'] == 1 else "⚠️"
-                        with st.expander(f"{icon} {loja['name']}"):
-                            st.write(f"**Distância:** {loja['distancia_km']:.2f} km")
-                            whatsapp_link = f"https://wa.me/{loja['whatsapp']}"
-                            st.markdown(f"[💬 Chamar no WhatsApp]({whatsapp_link})")
+                        status = "♿ Acessível" if loja['acessivel'] == 1 else "⚠️ Sem rampa"
+                        with st.expander(f"{loja['name']}"):
+                            st.write(f"**{status}**")
+                            st.write(f"Distância: {loja['distancia_km']:.2f} km")
+                            st.markdown(f"[💬 Chamar no WhatsApp](https://wa.me/{loja['whatsapp']})")
             else:
-                st.warning("Nenhum vizinho encontrado neste raio.")
+                st.warning("Nenhuma loja encontrada neste raio.")
         else:
-            st.warning(f"Ainda não temos lojas de {categoria_identificada} cadastradas.")
-            
+            st.warning("Ainda não temos lojas cadastradas para esta categoria.")
     except Exception as e:
-        st.error(f"Erro ao conectar ao banco de dados: {e}")
+        st.error(f"Erro no banco: {e}")
