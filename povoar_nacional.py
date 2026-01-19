@@ -1,36 +1,58 @@
 import sqlite3
 
-def resetar_e_povoar():
+def inicializar_banco_completo():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
     
-    # Limpeza Total
-    cursor.execute('DROP TABLE IF EXISTS stores')
-    cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
+    # Reiniciar estrutura para o novo padrão
     cursor.execute('DROP TABLE IF EXISTS competencias')
+    cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
+    cursor.execute('DROP TABLE IF EXISTS stores')
 
-    # Criação das Tabelas
-    cursor.execute('''CREATE TABLE stores (id INTEGER PRIMARY KEY, name TEXT, category TEXT, city TEXT, state TEXT, lat REAL, lon REAL, acessivel INTEGER, whatsapp TEXT, abertura INTEGER, fechamento INTEGER)''')
-    cursor.execute('''CREATE TABLE profissional_pcd (id INTEGER PRIMARY KEY, nome TEXT, cidade TEXT, estado TEXT, bio TEXT, area_atuacao TEXT)''')
-    cursor.execute('''CREATE TABLE competencias (id INTEGER PRIMARY KEY, profissional_id INTEGER, competencia TEXT, nivel TEXT, FOREIGN KEY (profissional_id) REFERENCES profissional_pcd(id))''')
+    # 1. Estabelecimentos
+    cursor.execute('''
+        CREATE TABLE stores (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT, category TEXT, city TEXT, state TEXT,
+            lat REAL, lon REAL, acessivel INTEGER,
+            whatsapp TEXT, abertura INTEGER, fechamento INTEGER
+        )
+    ''')
 
-    # Dados Iniciais (Aracaju)
-    lojas = [
-        ('Pão & Cia - Jardins', 'PADARIA', 'Aracaju', 'SE', -10.9298, -37.0545, 1, '79999990001', 6, 20),
-        ('Farmácia Pague Menos', 'FARMÁCIA', 'Aracaju', 'SE', -10.9125, -37.0548, 1, '79999990002', 7, 22)
-    ]
-    cursor.executemany('INSERT INTO stores (name, category, city, state, lat, lon, acessivel, whatsapp, abertura, fechamento) VALUES (?,?,?,?,?,?,?,?,?,?)', lojas)
+    # 2. Profissionais (Com Redes Sociais e PDF)
+    cursor.execute('''
+        CREATE TABLE profissional_pcd (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL,
+            cidade TEXT, estado TEXT,
+            area_atuacao TEXT,
+            bio TEXT,
+            telefone TEXT,
+            linkedin TEXT,
+            instagram TEXT,
+            curriculo_pdf BLOB
+        )
+    ''')
 
-    # Cadastro do Ítalo
-    cursor.execute("INSERT INTO profissional_pcd (nome, cidade, estado, bio, area_atuacao) VALUES (?,?,?,?,?)", 
-                   ('Ítalo', 'Aracaju', 'SE', 'Engenheiro de Dados e Atleta de Parahalterofilismo.', 'Engenharia de Dados'))
-    p_id = cursor.lastrowid
-    skills = [(p_id, 'Python'), (p_id, 'SQL'), (p_id, 'Cibersegurança')]
-    cursor.executemany('INSERT INTO competencias (profissional_id, competencia) VALUES (?,?)', skills)
+    # 3. Competências
+    cursor.execute('''
+        CREATE TABLE competencias (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            profissional_id INTEGER,
+            competencia TEXT,
+            FOREIGN KEY (profissional_id) REFERENCES profissional_pcd(id)
+        )
+    ''')
+
+    # Dados de Exemplo (Sua Bio)
+    cursor.execute('''
+        INSERT INTO profissional_pcd (nome, cidade, estado, area_atuacao, bio, telefone)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', ('Ítalo', 'Aracaju', 'SE', 'Engenharia de Dados & Cyber', 'Especialista em Cibersegurança e Atleta de Parahalterofilismo.', '79999999999'))
 
     conn.commit()
     conn.close()
-    print("✅ Banco de dados nacional pronto para uso!")
+    print("✅ Banco de dados reconstruído com suporte a Currículos e Redes Sociais!")
 
 if __name__ == "__main__":
-    resetar_e_povoar()
+    inicializar_banco_completo()
