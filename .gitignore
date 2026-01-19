@@ -1,0 +1,18 @@
+# Segurança: Segredos e Chaves
+.streamlit/
+secrets.toml
+.env
+
+# Banco de Dados Local
+*.db
+
+# Python e Ambiente Virtual
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Sistema
+.DS_Store
+Thumbs.db
