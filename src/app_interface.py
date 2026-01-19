@@ -59,7 +59,7 @@ with st.sidebar:
             st.markdown(f"[⚠️ ENVIAR WHATSAPP](https://wa.me/55{contato_sos}?text={msg})")
 
 # --- CORPO DO APLICATIVO ---
-st.title("Zequinha da Esquina")
+st.title("🏠 Zequinha da Esquina")
 st.write(f"Conectando a comunidade PCD em: **{cidade_in} - {estado_in}**")
 
 col_v, col_t = st.columns([1, 6])
