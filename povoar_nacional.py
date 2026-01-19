@@ -1,11 +1,10 @@
 import sqlite3
-import requests
 
-def importar_todas_cidades():
+def povoar_banco():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
-
-    # Mantemos a estrutura robusta que você definiu para o projeto
+    
+    # Reinicia a tabela para garantir o novo schema nacional
     cursor.execute('DROP TABLE IF EXISTS stores')
     cursor.execute('''
         CREATE TABLE stores (
@@ -23,41 +22,22 @@ def importar_todas_cidades():
         )
     ''')
 
-    # Consumindo a API oficial do IBGE para pegar todos os municípios
-    print("🛰️ Coletando cidades do IBGE...")
-    url = "https://servicodados.ibge.gov.br/api/v1/localidades/municipios"
-    response = requests.get(url)
-    municipios = response.json()
-
-    # Preparamos uma lista para inserção em lote (Best Practice de Engenharia de Dados)
-    dados_para_inserir = []
-    
-    # Nota: Como ainda não temos o crawler de lojas, vamos inserir 
-    # um "Ponto de Apoio" genérico em cada cidade para teste do seu MVP.
-    for m in municipios:
-        nome_cidade = m['nome']
-        sigla_uf = m['microrregiao']['mesorregiao']['UF']['sigla']
-        
-        # Simulando um ponto de apoio acessível padrão por cidade
-        dados_para_inserir.append((
-            f"Ponto de Apoio PCD - {nome_cidade}", 
-            "MERCADINHO", 
-            nome_cidade, 
-            sigla_uf, 
-            0.0, 0.0, # Coordenadas seriam obtidas via Maps API futuramente
-            1, 
-            "00000000000", 
-            8, 18
-        ))
+    # Dados de exemplo: Aracaju, São Paulo e Salvador
+    lojas = [
+        ('Pão & Cia - Jardins', 'PADARIA', 'Aracaju', 'SE', -10.9298, -37.0545, 1, '79999990001', 6, 20),
+        ('Drogasil Paulista', 'FARMÁCIA', 'São Paulo', 'SP', -23.5615, -46.6558, 1, '11999990002', 0, 24),
+        ('Mercado Modelo', 'MERCADINHO', 'Salvador', 'BA', -12.9691, -38.5126, 1, '71999990003', 8, 18),
+        ('Panificação Pand’oro', 'PADARIA', 'Aracaju', 'SE', -10.9265, -37.0495, 1, '79999990005', 6, 21)
+    ]
 
     cursor.executemany('''
         INSERT INTO stores (name, category, city, state, lat, lon, acessivel, whatsapp, abertura, fechamento)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', dados_para_inserir)
+    ''', lojas)
 
     conn.commit()
     conn.close()
-    print(f"✅ Sucesso! {len(dados_para_inserir)} cidades cadastradas no Zequinha Nacional.")
+    print("✅ Banco de dados nacional com horários criado!")
 
 if __name__ == "__main__":
-    importar_todas_cidades()
+    povoar_banco()
