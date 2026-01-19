@@ -17,7 +17,7 @@ st.markdown("""
         color: #334155;
     }
 
-    .stApp { background-color: #b0a0a0; }
+    .stApp { background-color: #000000; }
 
     /* Títulos e Subtítulos Profissionais */
     .main-header { font-size: 2.2rem; font-weight: 600; color: #0F172A; margin-bottom: 0px; }
