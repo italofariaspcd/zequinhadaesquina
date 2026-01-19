@@ -1,2 +1,17 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Segurança: Nunca subir as chaves de API
+.streamlit/
+
+# Banco de dados local (opcional, se quiser que cada um tenha o seu)
+*.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Sistema
+.DS_Store
+Thumbs.db
