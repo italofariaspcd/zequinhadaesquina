@@ -1,15 +1,15 @@
 import sqlite3
 
-def inicializar_banco():
+def inicializar_infraestrutura():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
     
-    # Reiniciar para garantir integridade do schema
+    # Limpeza para garantir integridade do schema
     cursor.execute('DROP TABLE IF EXISTS competencias')
     cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
     cursor.execute('DROP TABLE IF EXISTS stores')
 
-    # 1. Estabelecimentos
+    # 1. Estabelecimentos Acessíveis
     cursor.execute('''
         CREATE TABLE stores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +19,7 @@ def inicializar_banco():
         )
     ''')
 
-    # 2. Profissionais (Campos para Redes e PDF)
+    # 2. Profissionais PCD (Foco em Conectividade)
     cursor.execute('''
         CREATE TABLE profissional_pcd (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +34,7 @@ def inicializar_banco():
         )
     ''')
 
-    # 3. Competências Técnicas
+    # 3. Skills Técnicas
     cursor.execute('''
         CREATE TABLE competencias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -46,7 +46,7 @@ def inicializar_banco():
 
     conn.commit()
     conn.close()
-    print("✅ Banco de dados configurado com os novos padrões de cores e dados!")
+    print("🚀 Infraestrutura de Dados pronta!")
 
 if __name__ == "__main__":
-    inicializar_banco()
+    inicializar_infraestrutura()
