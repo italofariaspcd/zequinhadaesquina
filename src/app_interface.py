@@ -30,7 +30,7 @@ def classificar_demanda(texto):
 # --- TÍTULO COM LOGO ---
 col_l, col_t = st.columns([1, 8])
 with col_l:
-    st.write("# ♿") 
+    st.write("# 🏠") 
 with col_t:
     st.title("Zequinha da Esquina")
 
