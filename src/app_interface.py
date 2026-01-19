@@ -33,7 +33,7 @@ def classificar_demanda(texto):
 # --- INTERFACE: TÍTULO COM LOGO ---
 col_l, col_t = st.columns([1, 8])
 with col_l:
-    st.write("# ♿") # Substitua por st.image("logo.png") se tiver o arquivo
+    st.write("# 🏠") # Substitua por st.image("logo.png") se tiver o arquivo
 with col_t:
     st.title("Zequinha da Esquina")
 
