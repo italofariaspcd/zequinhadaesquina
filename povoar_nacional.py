@@ -1,15 +1,15 @@
 import sqlite3
 
-def inicializar_banco_completo():
+def inicializar_banco_clean():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
     
-    # Reiniciar estrutura para o novo padrão
+    # Limpeza para garantir nova estrutura
     cursor.execute('DROP TABLE IF EXISTS competencias')
     cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
     cursor.execute('DROP TABLE IF EXISTS stores')
 
-    # 1. Estabelecimentos
+    # Estabelecimentos
     cursor.execute('''
         CREATE TABLE stores (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,7 +19,7 @@ def inicializar_banco_completo():
         )
     ''')
 
-    # 2. Profissionais (Com Redes Sociais e PDF)
+    # Profissionais (Estrutura Minimalista)
     cursor.execute('''
         CREATE TABLE profissional_pcd (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +34,7 @@ def inicializar_banco_completo():
         )
     ''')
 
-    # 3. Competências
+    # Competências
     cursor.execute('''
         CREATE TABLE competencias (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -44,15 +44,9 @@ def inicializar_banco_completo():
         )
     ''')
 
-    # Dados de Exemplo (Sua Bio)
-    cursor.execute('''
-        INSERT INTO profissional_pcd (nome, cidade, estado, area_atuacao, bio, telefone)
-        VALUES (?, ?, ?, ?, ?, ?)
-    ''', ('Ítalo', 'Aracaju', 'SE', 'Engenharia de Dados & Cyber', 'Especialista em Cibersegurança e Atleta de Parahalterofilismo.', '79999999999'))
-
     conn.commit()
     conn.close()
-    print("✅ Banco de dados reconstruído com suporte a Currículos e Redes Sociais!")
+    print("✅ Banco de dados reconstruído com sucesso!")
 
 if __name__ == "__main__":
-    inicializar_banco_completo()
+    inicializar_banco_clean()
