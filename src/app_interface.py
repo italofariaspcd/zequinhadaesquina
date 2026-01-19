@@ -6,7 +6,7 @@ from datetime import datetime
 from streamlit_mic_recorder import mic_recorder
 
 # --- CONFIGURAÇÕES DE PÁGINA ---
-st.set_page_config(page_title="Zequinha da Esquina", page_icon="🏠", layout="wide")
+st.set_page_config(page_title="Zequinha da Esquina", page_icon="♿", layout="wide")
 
 # --- LÓGICA DE CLASSIFICAÇÃO ROBUSTA (NOVA API) ---
 def classificar_demanda(texto):
@@ -37,7 +37,7 @@ def classificar_demanda(texto):
 col_logo, col_titulo = st.columns([1, 8])
 with col_logo:
     # Use um emoji como logo ou carregue sua imagem personalizada
-    st.write("# ♿") 
+    st.write("# 🏠") 
 with col_titulo:
     st.title("Zequinha da Esquina")
 
