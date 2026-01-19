@@ -31,7 +31,7 @@ def classificar_demanda(texto):
 # --- INTERFACE: CABEÇALHO ---
 col_logo, col_titulo = st.columns([1, 8])
 with col_logo:
-    st.write("# ♿") # Placeholder para sua logo oficial
+    st.write("# 🏠") # Placeholder para sua logo oficial
 with col_titulo:
     st.title("Zequinha da Esquina")
 
