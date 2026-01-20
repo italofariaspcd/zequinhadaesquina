@@ -86,4 +86,4 @@ Este projeto segue as diretrizes da LGPD para o tratamento de dados pessoais, ga
 * *Atleta de Parahalterofilismo 🏋️‍♂️*
 
 ---
-*Documentação gerada para o ecossistema @acf_aracaju e comunidade PCD Brasil.*
+*Documentação gerada para o ecossistema e comunidade PCD Brasil.*
