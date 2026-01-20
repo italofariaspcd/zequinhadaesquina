@@ -3,7 +3,7 @@ import pandas as pd
 import sqlite3
 
 # --- CONFIGURAÇÕES DE PÁGINA ---
-st.set_page_config(page_title="Zequinha SE | Ecossistema Inclusivo", page_icon="♿", layout="wide")
+st.set_page_config(page_title="Zequinha da Esquina | O Ecossistema Inclusivo", page_icon="♿", layout="wide")
 
 # --- UI DESIGN SYSTEM ---
 st.markdown("""
@@ -27,7 +27,7 @@ st.markdown("""
 # --- MANIFESTO (HOME) ---
 st.markdown(f"""
     <div class="manifesto-container">
-        <p class="main-header">Zequinha SE</p>
+        <p class="main-header">Zequinha da Esquina</p>
         <p style="font-size: 1.15rem; color: #CBD5E1; line-height: 1.8;">
             O <span class="highlight">Zequinha da Esquina - Sergipe</span> é um Ecossistema de Autonomia. 
             Nascido em <span class="highlight">Aracaju</span>, conectamos talentos PCD diretamente 
