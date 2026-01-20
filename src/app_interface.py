@@ -77,9 +77,9 @@ st.markdown(f"""
 # --- HOME / MANIFESTO ---
 st.markdown(f"""
     <div class="manifesto-container">
-        <p class="main-header">Zequinha SE</p>
+        <p class="main-header">Zequinha da Esquina</p>
         <p style="font-size: 1.1rem; color: #CBD5E1; line-height: 1.6;">
-            O <span class="highlight">Ecossistema de Autonomia PCD de Sergipe</span>. 
+            O <span class="highlight">O Ecossistema de Autonomia para o PCD de Sergipe</span>. 
             Nossa missão é conectar talentos de <span class="highlight">Aracaju</span> e região com o mercado de trabalho, 
             utilizando tecnologia para garantir a inclusão e a validação técnica/médica dos profissionais.
         </p>
