@@ -4,27 +4,24 @@ def configurar_banco_sergipe():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
     
-    # Limpeza para garantir o novo Schema focado em Recrutamento
-    cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
+    # Criando tabelas com todos os campos necessários para o Recrutamento em SE
     cursor.execute('''
-        CREATE TABLE profissional_pcd (
+        CREATE TABLE IF NOT EXISTS profissional_pcd (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             cidade TEXT DEFAULT 'Aracaju',
             area_atuacao TEXT,
-            tipo_deficiencia TEXT,  -- Físico, Visual, Auditivo, Intelectual, Autismo, Múltipla
+            tipo_deficiencia TEXT,
             bio TEXT,
             telefone TEXT,
             linkedin TEXT,
-            curriculo_pdf BLOB,     -- Arquivo do Currículo
-            laudo_pcd BLOB          -- Arquivo do Laudo Médico (Obrigatório)
+            curriculo_pdf BLOB,
+            laudo_pcd BLOB
         )
     ''')
 
-    # Tabela de Vagas para Empresas de Sergipe
-    cursor.execute('DROP TABLE IF EXISTS vagas')
     cursor.execute('''
-        CREATE TABLE vagas (
+        CREATE TABLE IF NOT EXISTS vagas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             empresa TEXT NOT NULL,
             titulo_vaga TEXT NOT NULL,
@@ -36,7 +33,7 @@ def configurar_banco_sergipe():
 
     conn.commit()
     conn.close()
-    print("✅ Schema Sergipe (Talento + Laudo) configurado com sucesso!")
+    print("✅ Banco de dados sincronizado e pronto para o ecossistema SE!")
 
 if __name__ == "__main__":
     configurar_banco_sergipe()
