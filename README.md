@@ -1,98 +1,89 @@
-Esta revisão técnica consolida o estado atual do Zequinha da Esquina, garantindo que a arquitetura, a segurança e a lógica de IA estejam alinhadas com seu perfil de Engenheiro de Dados e especialista em Cibersegurança.
+# ♿ Zequinha da Esquina: Ecossistema de Autonomia e Empregabilidade PCD
 
-📂 1. povoar_nacional.py (Camada de Dados)
-Este script é o motor que transforma o projeto em uma solução nacional escalável.
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Streamlit](https://img.shields.io/badge/Streamlit-FF4B4B?style=for-the-badge&logo=Streamlit&logoColor=white)](https://streamlit.io/)
+[![Google Gemini](https://img.shields.io/badge/Gemini_AI-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)](https://ai.google.dev/)
+[![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
 
-Schema SQL: Define a estrutura com city, state, lat, lon, acessivel, whatsapp e horários (abertura/fechamento).
+> **Zequinha da Esquina** é uma solução *Full-Stack* de impacto social que utiliza Inteligência Artificial e Engenharia de Dados para mitigar barreiras de acessibilidade urbana e profissional para Pessoas com Deficiência (PCD).
 
-Segurança: Utiliza DROP TABLE IF EXISTS para permitir atualizações de schema sem erros de conflito e executemany para prevenir SQL Injection.
+---
 
-Abrangência: Popula dados reais de Aracaju/SE (Jardins e 13 de Julho), São Paulo/SP e Salvador/BA.
+## 📋 Visão Geral do Projeto
 
-📂 2. src/app_interface.py (Front-end e Lógica de IA)
-A interface principal, otimizada para acessibilidade e inteligência contextual.
+Desenvolvido com foco na realidade de **Sergipe** e expansível para todo o Brasil, o projeto nasceu da necessidade de conectar profissionais PCD ao mercado de trabalho e oferecer um mapeamento dinâmico de estabelecimentos acessíveis. O sistema utiliza processamento de linguagem natural (NLP) para permitir interações via voz, garantindo acessibilidade a usuários com diferentes níveis de mobilidade.
 
-Integração Gemini: Utiliza o modelo gemini-1.5-flash para:
+## 🏗️ Arquitetura Técnica
 
-NLP: Classificar a intenção do usuário (ex: "pão" → PADARIA).
+O ecossistema foi projetado seguindo princípios de **Cibersegurança** e **Clean Code**:
 
-Recomendação: Analisar qual loja está aberta e é mais acessível no horário atual da busca.
+* **Engine de IA:** Integração com o modelo `gemini-1.5-flash` para classificação de demandas em tempo real.
+* **Data Layer:** Persistência em SQLite com suporte a objetos binários (BLOB) para gestão de documentos (Currículos PDF).
+* **UI/UX Inclusiva:** Design System baseado em *Slate & Cyan Tech*, otimizado para alto contraste e baixa carga cognitiva.
+* **Segurança:** Protocolos de sanitização de dados e integração de SOS emergencial via API de mensageria.
 
-Acessibilidade (PCD):
+---
 
-Voz: Gravação via microfone para facilitar o uso por pessoas com mobilidade reduzida.
+## 🚀 Funcionalidades Chave
 
-UI/UX: Botões grandes, alto contraste e uso de st.toggle para filtros rápidos.
+### 1. Mural Nacional de Talentos
+Vitrine profissional onde usuários cadastram perfis técnicos, redes sociais e anexam currículos. 
+* **Destaque:** Sistema de download direto de PDFs e integração com WhatsApp/LinkedIn.
 
-Módulo SOS: Botão de emergência que gera um link direto para o WhatsApp com a localização e pedido de auxílio.
+### 2. Localizador Acessível com Voz
+Interface de busca que permite ao usuário falar sua necessidade (ex: "Onde tem uma padaria com rampa?").
+* **IA:** O Gemini interpreta o áudio transcrevido e filtra categorias comerciais no banco de dados.
 
-Correção de Fluxo: A lógica de exibição está protegida dentro do bloco if busca:, evitando erros de variáveis não definidas ao carregar a página.
+### 3. Módulo de Resposta a Emergências (SOS)
+Botão de pânico que aciona a rede de apoio cadastrada, integrando geolocalização e mensagens automáticas.
 
-📂 3. .gitignore e .streamlit/secrets.toml (Segurança)
-Arquivos críticos para a proteção do seu portfólio e conformidade com sua pós em Cibersegurança.
+---
 
-Gitignore: Bloqueia o envio de ambientes virtuais (.venv), bancos de dados locais (.db) e, principalmente, arquivos de chaves (secrets.toml) para o repositório público.
+## 🛠️ Configuração e Instalação
 
-Secrets: Armazena a GEMINI_API_KEY de forma isolada do código-fonte, prática essencial para evitar vazamentos de credenciais.
+### Pré-requisitos
+* Python 3.10 ou superior
+* Chave de API do Google Gemini (configurada em `.streamlit/secrets.toml`)
 
-📂 4. requirements.txt (Dependências)
-Garante que o ambiente seja replicável no Streamlit Cloud.
+### Guia Rápido
+1.  **Clonagem do Repositório:**
+    ```bash
+    git clone [https://github.com/seu-usuario/zequinhadaesquina.git](https://github.com/seu-usuario/zequinhadaesquina.git)
+    cd zequinhadaesquina
+    ```
+2.  **Ambiente Virtual e Dependências:**
+    ```bash
+    python -m venv .venv
+    source .venv/bin/activate  # ou .venv\Scripts\activate no Windows
+    pip install -r requirements.txt
+    ```
+3.  **Setup do Banco de Dados:**
+    ```bash
+    python povoar_nacional.py
+    ```
+4.  **Execução:**
+    ```bash
+    streamlit run src/app_interface.py
+    ```
 
-Inclui: streamlit, pandas, google-generativeai, geopy e streamlit-mic-recorder.
+---
 
-🏁 Resumo para Investidores
-O projeto agora é um SaaS (Software as a Service) de impacto social com:
+## 📊 Roadmap de Desenvolvimento (Gestão de Projetos)
+- [x] MVP: Busca por voz e categorização via IA.
+- [x] Sprint 2: Mural de Talentos e Gestão de PDFs.
+- [ ] Sprint 3: Implementação de Dashboard de Analytics (Streamlit Metrics).
+- [ ] Sprint 4: Geolocalização via API do Google Maps (Integração Direta).
 
-Escalabilidade Nacional: Arquitetura pronta para todas as capitais.
+## 🛡️ Segurança de Dados
+Este projeto segue as diretrizes da LGPD para o tratamento de dados pessoais, garantindo que currículos e informações de contato sejam acessados apenas por meio da interface autorizada.
 
-IA Generativa: Não apenas busca, mas recomenda e entende o usuário.
+---
 
-Segurança de Dados: Construído sob princípios de desenvolvimento seguro.
+## 👤 Desenvolvedor
+**Ítalo Farias**
+* *Engenheiro de Dados & Especialista em Cibersegurança*
+* *MBA em Gestão de Projetos e Metodologias Ágeis*
+* *Atleta de Parahalterofilismo 🏋️‍♂️*
 
-Propósito: Focado na autonomia de PCDs, unindo tecnologia e vivência real em Sergipe.
-
-Gostaria que eu revisasse o seu arquivo README.md do GitHub para que ele descreva tecnicamente todos esses pontos para quem visitar o seu perfil? Seria o toque final de profissionalismo.
-O README.md é o "cartão de visitas" técnico do seu repositório. Para um Engenheiro de Dados e especialista em Cibersegurança, ele deve demonstrar não apenas o propósito social, mas a solidez da arquitetura que você construiu.
-
-Aqui está a estrutura completa e profissional para o seu README:
-
-♿ Zequinha da Esquina: Inteligência Artificial para Inclusão Nacional
-O Zequinha da Esquina é uma plataforma escalável desenvolvida para conectar a comunidade de Pessoas com Deficiência (PCD) ao comércio local acessível em todo o Brasil. O projeto utiliza IA Generativa para facilitar a busca por voz e recomendar estabelecimentos com base em acessibilidade e horários reais.
-
-🚀 Funcionalidades Principais
-Busca por Voz Acessível: Interface otimizada para usuários com mobilidade reduzida (foco em usuários de muletas), eliminando a necessidade de digitação.
-
-Classificação Semântica via Gemini: Utiliza o modelo gemini-1.5-flash para interpretar pedidos em linguagem natural e categorizá-los automaticamente (ex: "pão quente" → PADARIA).
-
-Sistema de Recomendação Contextual: A IA analisa o horário atual e os dados de acessibilidade para sugerir a melhor opção aberta no momento.
-
-Filtro Nacional: Arquitetura que permite a seleção de diferentes cidades e estados, tornando o modelo replicável em qualquer capital brasileira.
-
-Botão SOS PCD: Funcionalidade de segurança que envia a localização exata via WhatsApp para contatos de confiança.
-
-🛠️ Arquitetura e Tecnologias
-Linguagem: Python 3.14.
-
-Interface: Streamlit (Otimizado para UX/UI de alto contraste).
-
-Banco de Dados: SQLite3 com modelagem nacional (Cidades, Estados, Horários e Acessibilidade).
-
-Motor de IA: Google Gemini API (LLM).
-
-Geolocalização: Geopy para cálculo de distância geodésica entre o usuário e os estabelecimentos.
-
-🛡️ Cibersegurança e Boas Práticas
-Como projeto desenvolvido por um especialista na área, o Zequinha da Esquina segue rigorosos padrões de segurança:
-
-Proteção de Credenciais: Uso de variáveis de ambiente e Streamlit Secrets para impedir a exposição de chaves de API.
-
-Prevenção de Injeção: Consultas ao banco de dados utilizando parâmetros sanitizados.
-
-Desenvolvimento Seguro: Versionamento controlado com .gitignore configurado para bloquear vazamentos de dados sensíveis e ambientes virtuais.
-
-👨‍💻 Sobre o Autor
-Ítalo – Engenheiro de Dados e Atleta de Parahalterofilismo.
-
-Pós-graduado em IA na Prática, Cibersegurança e Gestão de Projetos (Agile).
-
-Membro do Conselho Gestor da @acf_aracaju.
+---
+*Documentação gerada para o ecossistema @acf_aracaju e comunidade PCD Brasil.*
