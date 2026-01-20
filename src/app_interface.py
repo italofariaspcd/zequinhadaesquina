@@ -20,7 +20,7 @@ st.markdown("""
 
 # --- CABEÇALHO ---
 st.markdown('<p class="brand-title">Zequinha da Esquina - SERGIPE</p>', unsafe_allow_html=True)
-st.caption("Oportunidades e Talentos PCD no Estado de Sergipe")
+st.caption("O EcoSistema de Apoio e Ajuda a Talentos PCD no Estado de Sergipe")
 
 tab_talentos, tab_vagas, tab_cadastro = st.tabs(["🤝 BUSCAR TALENTOS", "💼 VAGAS EM SE", "📝 CADASTRAR"])
 
