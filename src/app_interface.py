@@ -116,7 +116,7 @@ with tab_cadastro:
                     
                     conn.commit()
                     conn.close()
-                    st.success("✅ Perfil e Laudo integrados com sucesso em Sergipe!")
+                    st.success("✅ Perfil e Laudo integrados com sucesso em Zequinha da Esquina!")
                 except Exception as e:
                     st.error(f"Erro técnico ao salvar: {e}")
             else:
