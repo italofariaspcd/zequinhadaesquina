@@ -1,29 +1,28 @@
 import sqlite3
 
-def inicializar_sergipe():
+def configurar_banco_sergipe():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
     
-    # Limpeza para novo padrão Sergipe
-    cursor.execute('DROP TABLE IF EXISTS vagas')
+    # Limpeza para garantir o novo Schema focado em Recrutamento
     cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
-    cursor.execute('DROP TABLE IF EXISTS competencias')
-
-    # 1. Tabela de Profissionais (Talentos de SE)
     cursor.execute('''
         CREATE TABLE profissional_pcd (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             cidade TEXT DEFAULT 'Aracaju',
             area_atuacao TEXT,
+            tipo_deficiencia TEXT,  -- Físico, Visual, Auditivo, Intelectual, Autismo, Múltipla
             bio TEXT,
             telefone TEXT,
             linkedin TEXT,
-            curriculo_pdf BLOB
+            curriculo_pdf BLOB,     -- Arquivo do Currículo
+            laudo_pcd BLOB          -- Arquivo do Laudo Médico (Obrigatório)
         )
     ''')
 
-    # 2. Tabela de Vagas (Oportunidades em SE)
+    # Tabela de Vagas para Empresas de Sergipe
+    cursor.execute('DROP TABLE IF EXISTS vagas')
     cursor.execute('''
         CREATE TABLE vagas (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -31,23 +30,13 @@ def inicializar_sergipe():
             titulo_vaga TEXT NOT NULL,
             cidade TEXT DEFAULT 'Aracaju',
             requisitos TEXT,
-            contato TEXT
-        )
-    ''')
-
-    # 3. Competências
-    cursor.execute('''
-        CREATE TABLE competencias (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            profissional_id INTEGER,
-            competencia TEXT,
-            FOREIGN KEY (profissional_id) REFERENCES profissional_pcd(id)
+            contato_vaga TEXT
         )
     ''')
 
     conn.commit()
     conn.close()
-    print("✅ Ecossistema Sergipe configurado com sucesso!")
+    print("✅ Schema Sergipe (Talento + Laudo) configurado com sucesso!")
 
 if __name__ == "__main__":
-    inicializar_sergipe()
+    configurar_banco_sergipe()

@@ -1,103 +1,109 @@
 import streamlit as st
 import pandas as pd
 import sqlite3
-from google import genai
-from streamlit_mic_recorder import mic_recorder
 
-# --- CONFIGURAÇÃO ---
-st.set_page_config(page_title="Zequinha SE - Talentos & Vagas", page_icon="♿", layout="wide")
+# --- CONFIGURAÇÕES DE PÁGINA ---
+st.set_page_config(page_title="Zequinha SE | Recrutamento PCD", page_icon="♿", layout="wide")
 
-# --- UI DESIGN SYSTEM (SERGIPE TECH) ---
+# --- UI DESIGN (ESTILO TECH MINIMALISTA) ---
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
-    .stApp { background-color: #0F172A; color: #F8FAFC; }
-    .brand-title { font-size: 2.5rem; font-weight: 800; color: #22D3EE; margin-bottom: 0px; }
-    .card-se { background: #1E293B; padding: 20px; border-radius: 12px; border-left: 5px solid #22D3EE; margin-bottom: 15px; }
-    .stButton>button { background-color: #22D3EE !important; color: #0F172A !important; font-weight: 700 !important; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    .stApp { background-color: #0F172A; color: #F8FAFC; font-family: 'Inter', sans-serif; }
+    .main-header { font-size: 2.2rem; font-weight: 800; color: #22D3EE; margin-bottom: 0px; }
+    .card-talento { background: #1E293B; padding: 25px; border-radius: 16px; border: 1px solid #334155; margin-bottom: 20px; }
+    .tag-def { background: rgba(34, 211, 238, 0.15); color: #22D3EE; padding: 4px 12px; border-radius: 50px; font-size: 0.8rem; font-weight: 600; }
+    .stButton>button { background-color: #22D3EE !important; color: #0F172A !important; font-weight: 700 !important; border-radius: 10px !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- CABEÇALHO ---
-st.markdown('<p class="brand-title">Zequinha da Esquina - SERGIPE</p>', unsafe_allow_html=True)
-st.caption("O EcoSistema de Apoio e Ajuda a Talentos PCD no Estado de Sergipe")
+# --- HEADER ---
+st.markdown('<p class="main-header">Zequinha SE: Recrutamento Inclusivo</p>', unsafe_allow_html=True)
+st.caption("Conectando Talentos PCD de Sergipe com Oportunidades Reais")
 
-tab_talentos, tab_vagas, tab_cadastro = st.tabs(["🤝 BUSCAR TALENTOS", "💼 VAGAS EM SE", "📝 CADASTRAR"])
+tab_busca, tab_vagas, tab_cadastro = st.tabs(["🤝 BUSCAR TALENTOS", "💼 VAGAS DISPONÍVEIS", "📝 CADASTRAR PERFIL"])
 
-# --- ABA 1: BUSCADOR DE TALENTOS (SUBSTITUI PRODUTOS) ---
-with tab_talentos:
-    col_v, col_s = st.columns([1, 5])
-    with col_v:
-        audio = mic_recorder(start_prompt="🎤", stop_prompt="🛑", key='mic_talento')
-    with col_s:
-        busca_t = st.text_input("Busque talentos por área ou habilidade (Ex: Python, RH, Aracaju)", 
-                                value=audio['text'] if audio else "", label_visibility="collapsed")
+# --- ABA 1: BUSCADOR DE TALENTOS (FILTRO POR DEFICIÊNCIA) ---
+with tab_busca:
+    st.markdown("### 🔍 Filtros de Recrutamento")
+    c1, c2 = st.columns([2, 1])
+    
+    with c1:
+        filtro_def = st.multiselect("Filtrar por Tipo de Deficiência:", 
+                                   ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
+    with c2:
+        filtro_cidade = st.text_input("Cidade (Sergipe)", placeholder="Ex: Aracaju")
 
-    if busca_t:
+    if st.button("Pesquisar na Base de Dados"):
         conn = sqlite3.connect('zequinha.db')
-        # Busca inteligente em Sergipe
-        query = f"""
-            SELECT * FROM profissional_pcd 
-            WHERE (area_atuacao LIKE '%{busca_t}%' OR bio LIKE '%{busca_t}%' OR cidade LIKE '%{busca_t}%')
-        """
-        df_t = pd.read_sql_query(query, conn)
-        conn.close()
+        query = "SELECT * FROM profissional_pcd WHERE 1=1"
+        if filtro_def:
+            query += f" AND tipo_deficiencia IN ({str(filtro_def)[1:-1]})"
+        if filtro_cidade:
+            query += f" AND cidade LIKE '%{filtro_cidade}%'"
         
-        if not df_t.empty:
-            for _, t in df_t.iterrows():
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+
+        if not df.empty:
+            for _, t in df.iterrows():
                 with st.container():
                     st.markdown(f"""
-                        <div class="card-se">
-                            <h3>👤 {t['nome']}</h3>
-                            <p><b>📍 {t['cidade']} | {t['area_atuacao']}</b></p>
-                            <p>{t['bio']}</p>
+                        <div class="card-talento">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h3 style="margin:0;">{t['nome']}</h3>
+                                <span class="tag-def">{t['tipo_deficiencia']}</span>
+                            </div>
+                            <p style="color: #38BDF8; font-weight: 600; margin-top: 5px;">{t['area_atuacao']} | 📍 {t['cidade']}</p>
+                            <p style="color: #94A3B8;">{t['bio']}</p>
                         </div>
                     """, unsafe_allow_html=True)
-                    c1, c2 = st.columns(2)
-                    c1.link_button("Falar no WhatsApp", f"https://wa.me/55{t['telefone']}")
+                    
+                    btn_c1, btn_c2, btn_c3 = st.columns(3)
+                    btn_c1.link_button("💬 WhatsApp", f"https://wa.me/55{t['telefone']}")
                     if t['curriculo_pdf']:
-                        c2.download_button("Baixar CV", data=t['curriculo_pdf'], file_name=f"CV_{t['nome']}.pdf")
+                        btn_c2.download_button("📄 Baixar Currículo", data=t['curriculo_pdf'], file_name=f"CV_{t['nome']}.pdf")
+                    if t['laudo_pcd']:
+                        btn_c3.download_button("🏥 Baixar Laudo", data=t['laudo_pcd'], file_name=f"Laudo_{t['nome']}.pdf")
+                    st.divider()
         else:
-            st.warning("Nenhum talento encontrado com esse termo em Sergipe.")
+            st.warning("Nenhum talento encontrado para os filtros selecionados.")
 
-# --- ABA 2: VAGAS EM SERGIPE ---
-with tab_vagas:
-    st.markdown("### 💼 Últimas Oportunidades no Estado")
-    try:
-        conn = sqlite3.connect('zequinha.db')
-        df_v = pd.read_sql_query("SELECT * FROM vagas ORDER BY id DESC", conn)
-        conn.close()
-        for _, v in df_v.iterrows():
-            with st.expander(f"🏢 {v['empresa']} - {v['titulo_vaga']}"):
-                st.write(f"📍 Cidade: {v['cidade']}")
-                st.write(f"📝 Requisitos: {v['requisitos']}")
-                st.link_button("Candidatar-se / Contato", f"https://wa.me/55{v['contato']}")
-    except:
-        st.info("Buscando novas vagas em Sergipe...")
-
-# --- ABA 3: CADASTRO (UNIFICADO) ---
+# --- ABA 3: CADASTRO COM ANEXO DE LAUDO ---
 with tab_cadastro:
-    tipo = st.radio("O que deseja cadastrar?", ["Meu Perfil (Talento)", "Nova Vaga (Empresa)"])
-    
-    if tipo == "Meu Perfil (Talento)":
-        with st.form("cad_talento"):
-            n = st.text_input("Nome*")
-            a = st.text_input("Área (Ex: Analista de Dados)*")
-            c = st.selectbox("Cidade em SE", ["Aracaju", "Nossa Senhora do Socorro", "Lagarto", "Itabaiana", "São Cristóvão", "Estância"])
-            t = st.text_input("WhatsApp (DDD+Número)")
-            b = st.text_area("Bio/Resumo Profissional")
-            pdf = st.file_uploader("Currículo (PDF)", type=["pdf"])
-            if st.form_submit_button("PUBLICAR PERFIL"):
-                # Lógica de INSERT no banco...
-                st.success("Perfil Sergipe cadastrado!")
+    st.markdown("### 📝 Criar Perfil Profissional (Sergipe)")
+    with st.form("form_pcd_se", clear_on_submit=True):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            nome = st.text_input("Nome Completo*")
+            area = st.text_input("Cargo/Especialidade* (Ex: Analista de Sistemas)")
+            tipo_d = st.selectbox("Tipo de Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
+            tel = st.text_input("Telefone com DDD (Só números)")
+            
+        with col2:
+            cid = st.text_input("Cidade (Sergipe)", value="Aracaju")
+            link_in = st.text_input("URL do LinkedIn")
+            # --- ÁREA DE ANEXOS ---
+            cv_file = st.file_uploader("Currículo (PDF)", type=["pdf"])
+            laudo_file = st.file_uploader("Laudo Médico PCD (PDF)*", type=["pdf"])
 
-    else:
-        with st.form("cad_vaga"):
-            emp = st.text_input("Nome da Empresa*")
-            vaga = st.text_input("Título da Vaga*")
-            cid_v = st.text_input("Cidade da Vaga", value="Aracaju")
-            req = st.text_area("Requisitos")
-            cont = st.text_input("WhatsApp para Candidatos")
-            if st.form_submit_button("ANUNCIAR VAGA"):
-                # Lógica de INSERT na tabela vagas...
-                st.success("Vaga publicada no mural de Sergipe!")
+        bio = st.text_area("Breve Resumo Profissional*")
+        
+        if st.form_submit_button("🚀 PUBLICAR NO ECOSSISTEMA"):
+            if nome and area and bio and laudo_file:
+                cv_blob = cv_file.read() if cv_file else None
+                laudo_blob = laudo_file.read() if laudo_file else None
+                
+                conn = sqlite3.connect('zequinha.db')
+                cursor = conn.cursor()
+                cursor.execute('''
+                    INSERT INTO profissional_pcd 
+                    (nome, cidade, area_atuacao, tipo_deficiencia, bio, telefone, linkedin, curriculo_pdf, laudo_pcd) 
+                    VALUES (?,?,?,?,?,?,?,?,?)
+                ''', (nome, cid, area, tipo_d, bio, tel, link_in, cv_blob, laudo_blob))
+                conn.commit()
+                conn.close()
+                st.success("✅ Perfil e Laudo registrados! Você já está visível para empresas de Sergipe.")
+            else:
+                st.error("Campos obrigatórios: Nome, Área, Bio e Laudo Médico.")
