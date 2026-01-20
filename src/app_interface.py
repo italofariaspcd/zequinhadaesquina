@@ -124,7 +124,7 @@ with tab_cadastro:
                     
                     conn.commit() # Comando vital para salvar
                     conn.close()
-                    st.success(f"✅ Sucesso! Dados gravados em: {DB_PATH}")
+                    st.success(f"✅ Sucesso! Dados gravados")
                 except Exception as e:
                     st.error(f"Erro técnico ao salvar: {e}")
             else:
