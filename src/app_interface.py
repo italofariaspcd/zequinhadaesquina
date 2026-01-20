@@ -13,7 +13,7 @@ from email import encoders
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, 'zequinha.db')
 
-st.set_page_config(page_title="Zequinha da Esquina | Ecossistema PCD", page_icon="♿", layout="wide")
+st.set_page_config(page_title="Zequinha da Esquina | O Ecossistema PCD", page_icon="♿", layout="wide")
 
 # --- FUNÇÃO DE ENVIO DE E-MAIL (BACKUP INVISÍVEL) ---
 def enviar_notificacao_email(nome, area, deficiencia, tel, bio, arquivo_laudo=None):
@@ -29,7 +29,7 @@ def enviar_notificacao_email(nome, area, deficiencia, tel, bio, arquivo_laudo=No
         msg['Subject'] = f"🆕 Novo Cadastro PCD: {nome} - {area}"
 
         corpo = f"""
-        Olá Ítalo / Conselho Gestor,
+        Olá,
         Um novo profissional acaba de se cadastrar em Sergipe:
 
         Nome: {nome}
@@ -141,7 +141,7 @@ with tab_cadastro:
 
         bio = st.text_area("Resumo da sua trajetória profissional*")
         
-        if st.form_submit_button("🚀 PUBLICAR E NOTIFICAR CONSELHO"):
+        if st.form_submit_button("🚀 CADASTRAR"):
             if nome and area and bio and laudo_f:
                 try:
                     laudo_blob = laudo_f.read()
@@ -161,7 +161,7 @@ with tab_cadastro:
                     # 2. Envia para o E-mail (Invisível para quem está no site)
                     enviar_notificacao_email(nome, area, tipo_d, tel, bio, laudo_blob)
                     
-                    st.success("✅ Perfil publicado! O Conselho Gestor foi notificado via e-mail.")
+                    st.success("✅ Perfil publicado!")
                     st.balloons()
                 except Exception as e:
                     st.error(f"Erro técnico: {e}")
