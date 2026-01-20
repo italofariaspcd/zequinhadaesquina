@@ -1,17 +1,20 @@
 import sqlite3
 
-def configurar_banco_sergipe():
+def resetar_banco_sergipe():
     conn = sqlite3.connect('zequinha.db')
     cursor = conn.cursor()
     
-    # Criando tabelas com todos os campos necessários para o Recrutamento em SE
+    # Forçamos a exclusão da tabela antiga para criar a nova com 'tipo_deficiencia'
+    cursor.execute('DROP TABLE IF EXISTS profissional_pcd')
+    
+    # Criando a tabela com a estrutura completa e revisada
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS profissional_pcd (
+        CREATE TABLE profissional_pcd (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nome TEXT NOT NULL,
             cidade TEXT DEFAULT 'Aracaju',
             area_atuacao TEXT,
-            tipo_deficiencia TEXT,
+            tipo_deficiencia TEXT,  -- A COLUNA QUE ESTAVA FALTANDO
             bio TEXT,
             telefone TEXT,
             linkedin TEXT,
@@ -19,21 +22,10 @@ def configurar_banco_sergipe():
             laudo_pcd BLOB
         )
     ''')
-
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS vagas (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            empresa TEXT NOT NULL,
-            titulo_vaga TEXT NOT NULL,
-            cidade TEXT DEFAULT 'Aracaju',
-            requisitos TEXT,
-            contato_vaga TEXT
-        )
-    ''')
-
+    
     conn.commit()
     conn.close()
-    print("✅ Banco de dados sincronizado e pronto para o ecossistema SE!")
+    print("✅ Banco de dados resetado e coluna 'tipo_deficiencia' adicionada!")
 
 if __name__ == "__main__":
-    configurar_banco_sergipe()
+    resetar_banco_sergipe()
