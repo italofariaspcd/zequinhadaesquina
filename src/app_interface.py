@@ -3,7 +3,7 @@ import pandas as pd
 import sqlite3
 
 # --- CONFIGURAÇÕES DE PÁGINA ---
-st.set_page_config(page_title="Zequinha SE | Recrutamento PCD", page_icon="♿", layout="wide")
+st.set_page_config(page_title="Zequinha da Esquina | O EcoSistema de Apoio ao PCD", page_icon="♿", layout="wide")
 
 # --- UI DESIGN (ESTILO TECH MINIMALISTA) ---
 st.markdown("""
