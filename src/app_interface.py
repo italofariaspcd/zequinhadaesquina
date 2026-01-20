@@ -36,7 +36,6 @@ st.markdown(f"""
             Conectamos talentos PCD diretamente com empresas de <span class="highlight">Aracaju e região</span>.
             <br><br>
             🚀 <b>Foco:</b> Empregabilidade e validação de laudos médicos.<br>
-            📍 <b>Local:</b> Banco de dados operando em: <code>{DB_PATH}</code>
         </p>
     </div>
 """, unsafe_allow_html=True)
