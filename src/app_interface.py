@@ -13,7 +13,7 @@ from email import encoders
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_PATH = os.path.join(BASE_DIR, 'zequinha.db')
 
-st.set_page_config(page_title="Zequinha da Esquina | O Ecossistema PCD", page_icon="♿", layout="wide")
+st.set_page_config(page_title="Zequinha da Esquina | O Ecossistema de Apoio ao PCD", page_icon="♿", layout="wide")
 
 # --- FUNÇÃO DE ENVIO DE E-MAIL (BACKUP INVISÍVEL) ---
 def enviar_notificacao_email(nome, area, deficiencia, tel, bio, arquivo_laudo=None):
@@ -30,7 +30,7 @@ def enviar_notificacao_email(nome, area, deficiencia, tel, bio, arquivo_laudo=No
 
         corpo = f"""
         Olá,
-        Um novo profissional acaba de se cadastrar em Sergipe:
+        Um novo profissional acaba de se cadastrar:
 
         Nome: {nome}
         Área: {area}
@@ -90,7 +90,7 @@ tab_busca, tab_vagas, tab_cadastro = st.tabs(["🔍 BUSCAR TALENTOS", "💼 VAGA
 
 # --- ABA 1: BUSCA PÚBLICA (CONSULTA SEGURA) ---
 with tab_busca:
-    st.markdown("### 🤝 Mural de Profissionais em SE")
+    st.markdown("### 🤝 Mural de Talentos PCD")
     c1, c2 = st.columns([2, 1])
     with c1:
         f_def = st.multiselect("Filtrar por Deficiência:", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
