@@ -18,7 +18,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- HEADER ---
-st.markdown('<p class="main-header">Zequinha SE: Recrutamento Inclusivo</p>', unsafe_allow_html=True)
+st.markdown('<p class="main-header">Zequinha da Esquina | O EcoSistema de Apoio ao PCD</p>', unsafe_allow_html=True)
 st.caption("Conectando Talentos PCD de Sergipe com Oportunidades Reais")
 
 tab_busca, tab_vagas, tab_cadastro = st.tabs(["🤝 BUSCAR TALENTOS", "💼 VAGAS DISPONÍVEIS", "📝 CADASTRAR PERFIL"])
