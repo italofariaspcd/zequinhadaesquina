@@ -216,3 +216,14 @@ with tab_cadastro:
             file_name=f"Curriculo_{st.session_state['nome_usuario']}.pdf",
             mime="application/pdf"
         )
+
+        # Coloque isso no final do arquivo, fora de qualquer aba
+if st.sidebar.button("⚠️ LIMPAR TODO O BANCO"):
+    with sqlite3.connect(DB_PATH) as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM profissional_pcd")
+        # Reinicia o contador de ID para voltar ao 1
+        cursor.execute("DELETE FROM sqlite_sequence WHERE name='profissional_pcd'")
+        conn.commit()
+    st.sidebar.success("Banco de dados esvaziado!")
+    st.rerun()
