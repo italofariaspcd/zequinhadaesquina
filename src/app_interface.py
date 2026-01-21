@@ -11,7 +11,7 @@ from email import encoders
 # ======================================================
 # CONFIGURAÇÃO DE INFRAESTRUTURA
 # ======================================================
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'zequinha.db')
 
 st.set_page_config(
@@ -21,9 +21,9 @@ st.set_page_config(
 )
 
 # ======================================================
-# FUNÇÃO DE ENVIO DE E-MAIL (BACKUP INVISÍVEL)
+# FUNÇÃO DE ENVIO DE E-MAIL (CORRIGIDA PARA 2 ANEXOS)
 # ======================================================
-def enviar_notificacao_email(nome, email, area, deficiencia, tel, bio, arquivo_laudo=None):
+def enviar_notificacao_email(nome, email, area, deficiencia, tel, bio, arquivo_laudo=None, arquivo_cv=None):
     try:
         remetente = st.secrets["EMAIL_USER"]
         senha = st.secrets["EMAIL_PASSWORD"]
@@ -48,20 +48,25 @@ WhatsApp: {tel}
 Resumo profissional:
 {bio}
 
-O laudo médico segue em anexo para validação.
+Os documentos seguem em anexo para validação.
         """
-
         msg.attach(MIMEText(corpo, 'plain'))
 
+        # Anexo 1: Laudo Médico
         if arquivo_laudo:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(arquivo_laudo)
-            encoders.encode_base64(part)
-            part.add_header(
-                'Content-Disposition',
-                f'attachment; filename=Laudo_{nome}.pdf'
-            )
-            msg.attach(part)
+            part1 = MIMEBase('application', 'octet-stream')
+            part1.set_payload(arquivo_laudo)
+            encoders.encode_base64(part1)
+            part1.add_header('Content-Disposition', f'attachment; filename=LAUDO_{nome}.pdf')
+            msg.attach(part1)
+
+        # Anexo 2: Currículo
+        if arquivo_cv:
+            part2 = MIMEBase('application', 'octet-stream')
+            part2.set_payload(arquivo_cv)
+            encoders.encode_base64(part2)
+            part2.add_header('Content-Disposition', f'attachment; filename=CV_{nome}.pdf')
+            msg.attach(part2)
 
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
@@ -69,8 +74,8 @@ O laudo médico segue em anexo para validação.
         server.send_message(msg)
         server.quit()
         return True
-
-    except:
+    except Exception as e:
+        st.error(f"Erro ao enviar e-mail: {e}")
         return False
 
 # ======================================================
@@ -119,6 +124,7 @@ st.markdown("""
     color: #0F172A !important;
     font-weight: 700 !important;
     border-radius: 8px !important;
+    width: 100%;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -132,7 +138,7 @@ st.markdown("""
     <p style="font-size:1.1rem; color:#CBD5E1; line-height:1.6;">
         O <span class="highlight">Ecossistema de Autonomia para Pessoas com Deficiência</span>.
         Nossa missão é conectar talentos de Sergipe ao mercado de trabalho,
-        utilizando tecnologia para promover inclusão real, validação técnica
+        utilizando tecnologia para promover inclusão real, validação técnica 
         e respeito à dignidade humana.
     </p>
 </div>
@@ -163,21 +169,14 @@ with tab_busca:
     if st.button("Filtrar Base"):
         try:
             conn = sqlite3.connect(DB_PATH)
-            query = """
-                SELECT nome, cidade, area_atuacao, tipo_deficiencia, bio
-                FROM profissional_pcd
-                WHERE 1=1
-            """
+            query = "SELECT nome, cidade, area_atuacao, tipo_deficiencia, bio FROM profissional_pcd WHERE 1=1"
+            params = []
 
             if f_def:
                 query += f" AND tipo_deficiencia IN ({','.join(['?']*len(f_def))})"
-            if f_cid:
-                query += " AND cidade LIKE ?"
-
-            params = []
-            if f_def:
                 params.extend(f_def)
             if f_cid:
+                query += " AND cidade LIKE ?"
                 params.append(f"%{f_cid}%")
 
             df = pd.read_sql_query(query, conn, params=params)
@@ -189,18 +188,17 @@ with tab_busca:
                     <div class="card-talento">
                         <b style="font-size:1.2rem; color:#22D3EE;">{t['nome']}</b><br>
                         <small>📍 {t['cidade']} | Deficiência: {t['tipo_deficiencia']}</small>
-                        <p style="margin-top:10px;">{t['area_atuacao']}</p>
+                        <p style="margin-top:10px;"><b>{t['area_atuacao']}</b></p>
                         <p style="color:#94A3B8; font-size:0.9rem;">{t['bio']}</p>
                     </div>
                     """, unsafe_allow_html=True)
             else:
                 st.info("Nenhum registro encontrado.")
-
         except:
-            st.warning("O banco de dados está sendo inicializado.")
+            st.warning("O banco de dados está sendo inicializado ou está vazio.")
 
 # ======================================================
-# ABA 3 — CADASTRO COM E-MAIL
+# ABA 3 — CADASTRO COM E-MAIL (2 ANEXOS)
 # ======================================================
 with tab_cadastro:
     st.markdown("### 📝 Entre para o Ecossistema")
@@ -234,25 +232,39 @@ with tab_cadastro:
 
                     conn = sqlite3.connect(DB_PATH)
                     cursor = conn.cursor()
+                    
+                    # Cria a tabela se não existir (prevenção)
                     cursor.execute("""
-                        INSERT INTO profissional_pcd
+                        CREATE TABLE IF NOT EXISTS profissional_pcd (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            nome TEXT, email TEXT, cidade TEXT, area_atuacao TEXT, 
+                            tipo_deficiencia TEXT, bio TEXT, telefone TEXT, 
+                            linkedin TEXT, curriculo_pdf BLOB, laudo_pcd BLOB
+                        )
+                    """)
+
+                    cursor.execute("""
+                        INSERT INTO profissional_pcd 
                         (nome, email, cidade, area_atuacao, tipo_deficiencia, bio, telefone, linkedin, curriculo_pdf, laudo_pcd)
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                        nome, email, cid, area, tipo_d,
-                        bio, tel, link_in, cv_blob, laudo_blob
-                    ))
+                    """, (nome, email, cid, area, tipo_d, bio, tel, link_in, cv_blob, laudo_blob))
+                    
                     conn.commit()
                     conn.close()
 
-                    enviar_notificacao_email(
-                        nome, email, area, tipo_d, tel, bio, laudo_blob
+                    # ENVIO DOS DOIS ANEXOS
+                    sucesso_email = enviar_notificacao_email(
+                        nome, email, area, tipo_d, tel, bio, laudo_blob, cv_blob
                     )
 
-                    st.success("✅ Perfil publicado com sucesso!")
+                    if sucesso_email:
+                        st.success("✅ Perfil publicado e documentos enviados para validação!")
+                    else:
+                        st.warning("✅ Perfil salvo, mas houve uma falha no envio do e-mail de notificação.")
+                    
                     st.balloons()
 
                 except Exception as e:
-                    st.error(f"Erro técnico: {e}")
+                    st.error(f"Erro técnico ao salvar: {e}")
             else:
                 st.error("Por favor, preencha todos os campos obrigatórios (*) e anexe o laudo.")
