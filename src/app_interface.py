@@ -14,6 +14,7 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, 'zequinha.db')
 
 def init_db():
+    """Inicializa o banco de dados com suporte a LinkedIn e arquivos binários"""
     with sqlite3.connect(DB_PATH) as conn:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS profissional_pcd (
@@ -33,29 +34,35 @@ def gerar_pdf_pcd(dados):
     pdf = FPDF()
     pdf.add_page()
     def fix(t): return str(t).encode('latin-1', 'replace').decode('latin-1')
+    
     pdf.set_font("Arial", 'B', 18)
-    pdf.set_text_color(34, 211, 238)
+    pdf.set_text_color(34, 211, 238) # Cyan Tech
     pdf.cell(200, 15, txt=fix("ZEQUINHA DA ESQUINA - CURRÍCULO PROFISSIONAL"), ln=True, align='C')
     pdf.ln(10)
+    
     pdf.set_font("Arial", 'B', 12)
     pdf.set_text_color(0, 0, 0)
     pdf.cell(200, 10, txt=f"NOME: {fix(dados['nome'].upper())}", ln=True)
     pdf.set_font("Arial", '', 11)
     pdf.cell(200, 8, txt=fix(f"E-mail: {dados['email']} | WhatsApp: {dados['tel']}"), ln=True)
-    pdf.cell(200, 8, txt=fix(f"Deficiência: {dados['tipo_d']} | Local: {dados['cidade']}"), ln=True)
+    if dados['linkedin']:
+        pdf.cell(200, 8, txt=fix(f"LinkedIn: {dados['linkedin']}"), ln=True)
+    pdf.cell(200, 8, txt=fix(f"Local: {dados['cidade']} | Deficiência: {dados['tipo_d']}"), ln=True)
     pdf.ln(5)
+    
     pdf.set_font("Arial", 'B', 12)
     pdf.cell(200, 10, txt=fix("RESUMO PROFISSIONAL:"), ln=True)
     pdf.set_font("Arial", '', 11)
     pdf.multi_cell(0, 8, txt=fix(dados['bio']))
+    
     pdf.ln(20)
     pdf.set_font("Arial", 'I', 8)
     pdf.set_text_color(160, 160, 160)
-    pdf.cell(0, 10, txt=fix("Validado pelo Ecossistema Zequinha da Esquina - Sergipe"), align='C')
+    pdf.cell(0, 10, txt=fix("Documento gerado pelo Ecossistema Zequinha da Esquina - Sergipe"), align='C')
     return pdf.output(dest='S').encode('latin-1')
 
 # --- NOTIFICAÇÃO POR E-MAIL ---
-def enviar_notificacao_email(nome, email, area, deficiencia, tel, bio, arquivo_laudo=None, arquivo_cv=None):
+def enviar_notificacao_email(nome, email, area, deficiencia, tel, bio, linkedin, arquivo_laudo=None, arquivo_cv=None):
     try:
         remetente = st.secrets["EMAIL_USER"]
         senha = st.secrets["EMAIL_PASSWORD"]
@@ -66,7 +73,21 @@ def enviar_notificacao_email(nome, email, area, deficiencia, tel, bio, arquivo_l
         msg['To'] = destinatario
         msg['Subject'] = f"🆕 Novo Cadastro PCD: {nome} - {area}"
 
-        corpo = f"Novo profissional cadastrado:\n\nNome: {nome}\nE-mail: {email}\nÁrea: {area}\nDeficiência: {deficiencia}\nWhatsApp: {tel}\n\nResumo: {bio}"
+        corpo = f"""
+Novo profissional cadastrado no Zequinha da Esquina:
+
+Nome: {nome}
+E-mail: {email}
+LinkedIn: {linkedin if linkedin else 'Não informado'}
+Área: {area}
+Deficiência: {deficiencia}
+WhatsApp: {tel}
+
+Resumo Profissional:
+{bio}
+
+Os documentos originais (Laudo e CV) seguem em anexo.
+        """
         msg.attach(MIMEText(corpo, 'plain'))
 
         for arq, label in [(arquivo_laudo, "LAUDO"), (arquivo_cv, "CV")]:
@@ -95,26 +116,26 @@ st.markdown("""
     .main-header { font-size: 3rem; font-weight: 800; color: #22D3EE; margin-bottom: 5px; }
     .highlight { color: #22D3EE; font-weight: 700; }
     .card-talento { background: #1E293B; padding: 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px; }
-    .stButton > button { background-color: #22D3EE !important; color: #0F172A !important; font-weight: 700 !important; border-radius: 8px !important; }
+    .stButton > button { background-color: #22D3EE !important; color: #0F172A !important; font-weight: 700 !important; width: 100%; border-radius: 8px !important; }
 </style>
 """, unsafe_allow_html=True)
 
-# --- MANIFESTO ---
+# --- MANIFESTO OTIMIZADO ---
 st.markdown(f"""
     <div class="manifesto-container">
         <p class="main-header">Zequinha da Esquina ♿</p>
         <p style="font-size: 1.2rem; color: #94A3B8; font-weight: 600;">Ecossistema de Autonomia e Inteligência de Dados PCD em Sergipe</p>
         <p style="font-size: 1.1rem; color: #CBD5E1; line-height: 1.8;">
-            O <span class="highlight">Zequinha da Esquina</span> transcende a tecnologia; é um compromisso com a dignidade humana. 
-            Utilizamos <b>Engenharia de Dados</b> para conectar o talento de Sergipe às oportunidades reais de mercado. 
-            Nossa plataforma garante validação técnica, segurança da informação e o 
-            <b>protagonismo do profissional com deficiência</b>.
+            O <span class="highlight">Zequinha da Esquina</span> une tecnologia de ponta à inclusão social. 
+            Utilizamos <b>Engenharia de Dados</b> para dar visibilidade aos talentos PCD de Sergipe, garantindo 
+            segurança, validação técnica e autonomia real no mercado de trabalho.
         </p>
     </div>
 """, unsafe_allow_html=True)
 
 tab_busca, tab_vagas, tab_cadastro = st.tabs(["🔍 BUSCAR TALENTOS", "💼 VAGAS", "📝 MEU PERFIL"])
 
+# --- ABA: BUSCA ---
 with tab_busca:
     st.markdown("### 🤝 Mural de Talentos")
     c1, c2 = st.columns([2, 1])
@@ -123,7 +144,7 @@ with tab_busca:
 
     if st.button("Filtrar Base"):
         with sqlite3.connect(DB_PATH) as conn:
-            query = "SELECT nome, cidade, area_atuacao, tipo_deficiencia, bio FROM profissional_pcd WHERE 1=1"
+            query = "SELECT nome, cidade, area_atuacao, tipo_deficiencia, bio, linkedin FROM profissional_pcd WHERE 1=1"
             params = []
             if f_def:
                 query += f" AND tipo_deficiencia IN ({','.join(['?']*len(f_def))})"
@@ -134,28 +155,36 @@ with tab_busca:
             
             df = pd.read_sql_query(query, conn, params=params)
             for _, t in df.iterrows():
-                st.markdown(f'<div class="card-talento"><b style="color:#22D3EE;">{t["nome"]}</b><br><small>📍 {t["cidade"]} | {t["tipo_deficiencia"]}</small><p>{t["area_atuacao"]}</p></div>', unsafe_allow_html=True)
+                st.markdown(f'''
+                    <div class="card-talento">
+                        <b style="color:#22D3EE;">{t["nome"]}</b><br>
+                        <small>📍 {t["cidade"]} | {t["tipo_deficiencia"]}</small>
+                        <p>{t["area_atuacao"]}</p>
+                        {f'<a href="{t["linkedin"]}" target="_blank" style="color:#22D3EE; text-decoration:none;">🔗 LinkedIn</a>' if t["linkedin"] else ''}
+                    </div>
+                ''', unsafe_allow_html=True)
 
+# --- ABA: CADASTRO ---
 with tab_cadastro:
     st.markdown("### 📝 Cadastro e Gerador de Currículo")
     
-    # Formulário original preservado
     with st.form("cadastro_completo", clear_on_submit=False):
         c1, c2 = st.columns(2)
-        nome = c1.text_input("Nome Completo*")
-        email = c1.text_input("E-mail Profissional*")
-        area = c1.text_input("Cargo/Especialidade*")
-        tel = c1.text_input("WhatsApp")
-        cid = c2.text_input("Cidade (SE)", value="Aracaju")
-        tipo_d = c2.selectbox("Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
-        cv_f = c2.file_uploader("Anexar seu Currículo Original (PDF)", type=["pdf"])
-        laudo_f = c2.file_uploader("Anexar Laudo Médico (PDF)*", type=["pdf"])
-        bio = st.text_area("Resumo Profissional e Habilidades*")
+        with c1:
+            nome = st.text_input("Nome Completo*")
+            email = st.text_input("E-mail Profissional*")
+            area = st.text_input("Cargo/Especialidade*")
+            tel = st.text_input("WhatsApp (79 9XXXX-XXXX)")
+            tipo_d = st.selectbox("Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
+        with c2:
+            cid = st.text_input("Cidade (SE)", value="Aracaju")
+            link_in = st.text_input("Link do LinkedIn (URL)")
+            cv_f = st.file_uploader("Anexar seu Currículo Original (PDF)", type=["pdf"])
+            laudo_f = st.file_uploader("Anexar Laudo Médico (PDF)*", type=["pdf"])
         
-        # Botão de Submit que dispara a lógica de banco/e-mail
+        bio = st.text_area("Resumo Profissional e Habilidades*")
         submit = st.form_submit_button("🚀 CADASTRAR")
 
-    # Lógica de processamento fora do st.form para permitir o download_button
     if submit:
         if nome and email and area and laudo_f and bio:
             with st.spinner("Processando cadastro seguro..."):
@@ -165,21 +194,19 @@ with tab_cadastro:
                 with sqlite3.connect(DB_PATH) as conn:
                     conn.execute("""
                         INSERT INTO profissional_pcd 
-                        (nome, email, cidade, area_atuacao, tipo_deficiencia, bio, telefone, laudo_pcd, curriculo_pdf) 
-                        VALUES (?,?,?,?,?,?,?,?,?)""",
-                        (nome, email, cid, area, tipo_d, bio, tel, laudo_blob, cv_blob))
+                        (nome, email, cidade, area_atuacao, tipo_deficiencia, bio, telefone, linkedin, curriculo_pdf, laudo_pcd) 
+                        VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                        (nome, email, cid, area, tipo_d, bio, tel, link_in, cv_blob, laudo_blob))
                 
-                enviar_notificacao_email(nome, email, area, tipo_d, tel, bio, laudo_blob, cv_blob)
+                enviar_notificacao_email(nome, email, area, tipo_d, tel, bio, link_in, laudo_blob, cv_blob)
                 
-                # Armazena os dados do PDF no session_state para que o botão de download funcione
-                st.session_state['pdf_bytes'] = gerar_pdf_pcd({"nome": nome, "email": email, "tel": tel, "tipo_d": tipo_d, "cidade": cid, "area": area, "bio": bio})
+                st.session_state['pdf_bytes'] = gerar_pdf_pcd({"nome": nome, "email": email, "tel": tel, "tipo_d": tipo_d, "cidade": cid, "area": area, "bio": bio, "linkedin": link_in})
                 st.session_state['nome_usuario'] = nome
                 st.success("✅ Perfil publicado com sucesso!")
                 st.balloons()
         else:
             st.error("Preencha todos os campos obrigatórios (*).")
 
-    # Exibe o botão de download APENAS se o cadastro foi concluído com sucesso
     if 'pdf_bytes' in st.session_state:
         st.markdown("---")
         st.markdown("#### 📥 Algo a mais: Seu Currículo Padronizado")
