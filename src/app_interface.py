@@ -1,169 +1,118 @@
 import streamlit as st
-import pandas as pd
-import sqlite3
-import os
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
+from fpdf import FPDF
+import base64
 
-# --- CONFIGURAÇÃO DE INFRAESTRUTURA ---
-# Caminho absoluto para garantir persistência no local correto
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, 'zequinha.db')
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Zequinha da Esquina", page_icon="♿", layout="wide")
 
-st.set_page_config(page_title="Zequinha da Esquina | O Ecossistema de Apoio ao PCD", page_icon="♿", layout="wide")
+# --- 1. ACESSIBILIDADE: VLIBRAS ---
+st.components.v1.html("""
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>
+""", height=0)
 
-# --- FUNÇÃO DE ENVIO DE E-MAIL (BACKUP INVISÍVEL) ---
-def enviar_notificacao_email(nome, area, deficiencia, tel, bio, arquivo_laudo=None):
-    try:
-        # Puxa credenciais das Secrets do Streamlit por segurança
-        remetente = st.secrets["EMAIL_USER"]
-        senha = st.secrets["EMAIL_PASSWORD"]
-        destinatario = st.secrets["EMAIL_DESTINATARIO"]
+# --- 2. FUNÇÃO: GERADOR DE PDF ---
+def gerar_pdf(dados):
+    pdf = FPDF()
+    pdf.add_page()
+    
+    # Cabeçalho do Projeto
+    pdf.set_font("Arial", 'B', 16)
+    pdf.set_text_color(34, 211, 238) # Cor Cyan do Zequinha
+    pdf.cell(200, 10, txt="Zequinha da Esquina - Currículo Profissional", ln=True, align='C')
+    pdf.ln(10)
+    
+    # Dados Pessoais
+    pdf.set_font("Arial", 'B', 12)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(200, 10, txt=f"NOME: {dados['nome'].upper()}", ln=True)
+    pdf.set_font("Arial", '', 11)
+    pdf.cell(200, 8, txt=f"Cidade: {dados['cidade']} | WhatsApp: {dados['tel']}", ln=True)
+    pdf.cell(200, 8, txt=f"E-mail: {dados['email']}", ln=True)
+    pdf.ln(5)
+    
+    # Informação de Inclusão
+    pdf.set_fill_color(232, 232, 232)
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(0, 10, txt=f"INFORMAÇÃO PCD: {dados['tipo_d']}", ln=True, fill=True)
+    pdf.ln(5)
+    
+    # Perfil Profissional
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(200, 10, txt="OBJETIVO / ÁREA DE ATUAÇÃO:", ln=True)
+    pdf.set_font("Arial", 'B', 11)
+    pdf.cell(200, 8, txt=dados['area'], ln=True)
+    pdf.ln(5)
+    
+    pdf.set_font("Arial", 'B', 12)
+    pdf.cell(200, 10, txt="RESUMO PROFISSIONAL:", ln=True)
+    pdf.set_font("Arial", '', 11)
+    pdf.multi_cell(0, 8, txt=dados['bio'])
+    
+    # Rodapé de Impacto
+    pdf.ln(20)
+    pdf.set_font("Arial", 'I', 8)
+    pdf.set_text_color(150, 150, 150)
+    pdf.cell(0, 10, txt="Este profissional faz parte do Ecossistema Zequinha da Esquina - Sergipe.", align='C')
+    
+    return pdf.output(dest='S').encode('latin-1')
 
-        msg = MIMEMultipart()
-        msg['From'] = remetente
-        msg['To'] = destinatario
-        msg['Subject'] = f"🆕 Novo Cadastro PCD: {nome} - {area}"
-
-        corpo = f"""
-        Olá,
-        Um novo profissional acaba de se cadastrar:
-
-        Nome: {nome}
-        Área: {area}
-        Deficiência: {deficiencia}
-        WhatsApp: {tel}
-        Resumo: {bio}
-
-        O laudo médico segue em anexo para validação.
-        """
-        msg.attach(MIMEText(corpo, 'plain'))
-
-        if arquivo_laudo:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(arquivo_laudo)
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f"attachment; filename=Laudo_{nome}.pdf")
-            msg.attach(part)
-
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login(remetente, senha)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except:
-        return False
-
-# --- DESIGN SYSTEM (CYAN TECH) ---
-st.markdown(f"""
+# --- 3. UI DESIGN ---
+st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-    .stApp {{ background-color: #0F172A; color: #F8FAFC; font-family: 'Inter', sans-serif; }}
-    .manifesto-container {{
-        background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
-        padding: 40px; border-radius: 20px; border: 1px solid #334155; margin-bottom: 30px;
-    }}
-    .main-header {{ font-size: 2.8rem; font-weight: 800; color: #22D3EE; margin-bottom: 10px; }}
-    .highlight {{ color: #22D3EE; font-weight: 600; }}
-    .card-talento {{ background: #1E293B; padding: 20px; border-radius: 12px; border: 1px solid #334155; margin-bottom: 15px; }}
-    .stButton>button {{ background-color: #22D3EE !important; color: #0F172A !important; font-weight: 700 !important; border-radius: 8px !important; }}
+    .stApp { background-color: #0F172A; color: #F8FAFC; }
+    .main-header { font-size: 3rem; font-weight: 800; color: #22D3EE; text-align: center; margin-bottom: 0px; }
+    .tool-card { background: #1E293B; padding: 25px; border-radius: 15px; border: 2px solid #22D3EE; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- HOME / MANIFESTO ---
-st.markdown(f"""
-    <div class="manifesto-container">
-        <p class="main-header">Zequinha da Esquina</p>
-        <p style="font-size: 1.1rem; color: #CBD5E1; line-height: 1.6;">
-            O <span class="highlight">O Ecossistema de Autonomia para o PCD de Sergipe</span>. 
-            Nossa missão é conectar talentos de <span class="highlight">Aracaju</span> e região com o mercado de trabalho, 
-            utilizando tecnologia para garantir a inclusão e a validação técnica/médica dos profissionais.
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown('<p class="main-header">Zequinha da Esquina ♿</p>', unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #94A3B8;'>Gerador de Currículo e Inclusão em Sergipe</p>", unsafe_allow_html=True)
 
-tab_busca, tab_vagas, tab_cadastro = st.tabs(["🔍 BUSCAR TALENTOS", "💼 VAGAS", "📝 MEU PERFIL"])
+st.divider()
 
-# --- ABA 1: BUSCA PÚBLICA (CONSULTA SEGURA) ---
-with tab_busca:
-    st.markdown("### 🤝 Mural de Talentos PCD")
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        f_def = st.multiselect("Filtrar por Deficiência:", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
-    with c2:
-        f_cid = st.text_input("Filtrar Cidade", value="Aracaju")
+# --- 4. FERRAMENTA: GERADOR DE CURRÍCULO ---
+st.markdown("### 📄 Ferramenta: Criar meu Currículo Profissional")
+st.write("Preencha os campos abaixo e baixe seu currículo pronto para imprimir ou enviar por WhatsApp.")
 
-    if st.button("Filtrar Base"):
-        try:
-            conn = sqlite3.connect(DB_PATH)
-            query = "SELECT nome, cidade, area_atuacao, tipo_deficiencia, bio FROM profissional_pcd WHERE 1=1"
-            if f_def: query += f" AND tipo_deficiencia IN ({str(f_def)[1:-1]})"
-            if f_cid: query += f" AND cidade LIKE '%{f_cid}%'"
-            
-            df = pd.read_sql_query(query, conn)
-            conn.close()
+with st.container():
+    st.markdown('<div class="tool-card">', unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1:
+        nome = st.text_input("Seu Nome Completo")
+        email = st.text_input("Seu E-mail")
+        area = st.text_input("Área de Atuação (Ex: Auxiliar Administrativo, TI, Vendas)")
+    with col2:
+        cidade = st.text_input("Cidade de Residência", value="Aracaju")
+        tel = st.text_input("WhatsApp com DDD")
+        tipo_d = st.selectbox("Tipo de Deficiência (Para fins de Cota)", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
+    
+    bio = st.text_area("Conte um pouco sobre suas experiências anteriores:")
+    
+    if st.button("✨ GERAR E BAIXAR CURRÍCULO"):
+        if nome and area and tel and email:
+            dados_curriculo = {
+                "nome": nome, "email": email, "area": area, 
+                "cidade": cidade, "tel": tel, "tipo_d": tipo_d, "bio": bio
+            }
+            try:
+                pdf_output = gerar_pdf(dados_curriculo)
+                st.download_button(
+                    label="📥 Clique aqui para baixar o PDF",
+                    data=pdf_output,
+                    file_name=f"Curriculo_Zequinha_{nome.replace(' ', '_')}.pdf",
+                    mime="application/pdf"
+                )
+                st.success("Tudo pronto! Seu currículo foi gerado com sucesso.")
+            except Exception as e:
+                st.error(f"Erro ao gerar PDF: {e}")
+        else:
+            st.warning("Por favor, preencha as informações básicas para gerar o documento.")
+    st.markdown('</div>', unsafe_allow_html=True)
 
-            if not df.empty:
-                for _, t in df.iterrows():
-                    with st.container():
-                        st.markdown(f"""
-                            <div class="card-talento">
-                                <b style="font-size: 1.2rem; color: #22D3EE;">{t['nome']}</b><br>
-                                <small>📍 {t['cidade']} | Deficiência: {t['tipo_deficiencia']}</small>
-                                <p style='color: #CBD5E1; margin-top: 10px;'>{t['area_atuacao']}</p>
-                                <p style='color: #94A3B8; font-size: 0.9rem;'>{t['bio']}</p>
-                            </div>
-                        """, unsafe_allow_html=True)
-            else:
-                st.info("Nenhum registro encontrado.")
-        except:
-            st.warning("O banco de dados está sendo inicializado.")
-
-# --- ABA 3: CADASTRO COM ENVIO DE E-MAIL ---
-with tab_cadastro:
-    st.markdown("### 📝 Entre para o Ecossistema")
-    with st.form("cadastro_completo_se", clear_on_submit=True):
-        col1, col2 = st.columns(2)
-        with col1:
-            nome = st.text_input("Nome Completo*")
-            area = st.text_input("Cargo/Especialidade*")
-            tipo_d = st.selectbox("Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
-            tel = st.text_input("WhatsApp com DDD")
-        with col2:
-            cid = st.text_input("Cidade (SE)", value="Aracaju")
-            link_in = st.text_input("Link LinkedIn")
-            cv_f = st.file_uploader("Currículo (PDF)", type=["pdf"])
-            laudo_f = st.file_uploader("Laudo PCD (PDF)*", type=["pdf"])
-
-        bio = st.text_area("Resumo da sua trajetória profissional*")
-        
-        if st.form_submit_button("🚀 CADASTRAR"):
-            if nome and area and bio and laudo_f:
-                try:
-                    laudo_blob = laudo_f.read()
-                    cv_blob = cv_f.read() if cv_f else None
-                    
-                    # 1. Salva no Banco de Dados
-                    conn = sqlite3.connect(DB_PATH)
-                    cursor = conn.cursor()
-                    cursor.execute('''
-                        INSERT INTO profissional_pcd 
-                        (nome, cidade, area_atuacao, tipo_deficiencia, bio, telefone, linkedin, curriculo_pdf, laudo_pcd) 
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ''', (nome, cid, area, tipo_d, bio, tel, link_in, cv_blob, laudo_blob))
-                    conn.commit()
-                    conn.close()
-                    
-                    # 2. Envia para o E-mail (Invisível para quem está no site)
-                    enviar_notificacao_email(nome, area, tipo_d, tel, bio, laudo_blob)
-                    
-                    st.success("✅ Perfil publicado!")
-                    st.balloons()
-                except Exception as e:
-                    st.error(f"Erro técnico: {e}")
-            else:
-                st.error("Por favor, preencha os campos com (*) e anexe o Laudo.")
+st.divider()
+st.info("💡 Como gestor do projeto, os dados preenchidos aqui auxiliam na sua visibilidade no ecossistema Zequinha da Esquina.")
