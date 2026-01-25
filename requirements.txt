@@ -4,3 +4,4 @@ pandas
 google-genai
 geopy
 streamlit-mic-recorder
+st-gsheets-connection
