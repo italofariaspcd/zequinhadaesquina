@@ -91,7 +91,7 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         print(f"Erro ao enviar email: {e}")
         return False
 
-# --- DESIGN SYSTEM PREMIUM (CSS ATUALIZADO - BOTÕES VISÍVEIS) ---
+# --- DESIGN SYSTEM PREMIUM (CSS MOBILE FIRST) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -103,6 +103,48 @@ st.markdown("""
     
     h1, h2, h3 { color: white !important; }
     p, label { color: #94A3B8 !important; }
+    
+    /* --- DESTAQUE MENU LATERAL (OTIMIZADO PARA MOBILE) --- */
+    
+    /* Estilo base dos itens (desativados) */
+    section[data-testid="stSidebar"] .stRadio label {
+        color: #94A3B8 !important;
+        font-weight: 500 !important;
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+        padding-left: 10px !important;
+        margin-bottom: 5px !important;
+        transition: all 0.2s ease-in-out !important;
+        border-left: 4px solid transparent; /* Espaço reservado para a seta */
+        cursor: pointer;
+    }
+    
+    /* Estilo do ITEM SELECIONADO (Usa :has para detectar o checked interno) */
+    /* Funciona no Chrome Mobile, Safari (iOS) e Android modernos */
+    section[data-testid="stSidebar"] .stRadio label:has(div[aria-checked="true"]),
+    section[data-testid="stSidebar"] .stRadio label:has(input:checked) {
+        background: linear-gradient(90deg, rgba(0, 255, 163, 0.15) 0%, transparent 100%) !important;
+        border-left: 4px solid #00FFA3 !important; /* A "SETA" NEON */
+        color: #00FFA3 !important;
+        font-weight: 800 !important;
+        border-radius: 0 10px 10px 0;
+    }
+
+    /* Pinta a bolinha do rádio selecionado de verde neon */
+    div[role="radiogroup"] div[aria-checked="true"] {
+        background-color: #00FFA3 !important;
+        border-color: #00FFA3 !important;
+    }
+    
+    /* Aumenta a área de toque no mobile */
+    @media (max-width: 768px) {
+        section[data-testid="stSidebar"] .stRadio label {
+            padding-top: 15px !important;
+            padding-bottom: 15px !important;
+            font-size: 1.1rem !important;
+        }
+    }
+    /* --- FIM DO DESTAQUE MENU --- */
     
     .card-talento {
         background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
@@ -117,32 +159,28 @@ st.markdown("""
         background-color: #1E293B !important; color: white !important; border: 1px solid #334155 !important; border-radius: 10px !important;
     }
 
-    /* --- BOTÕES MAIS VISÍVEIS (ALTO CONTRASTE) --- */
+    /* --- BOTÕES NEON --- */
     div.stButton > button {
-        /* Gradiente Verde Neon para Ciano (Muito Brilhante) */
         background: linear-gradient(90deg, #00FFA3 0%, #00F2FF 100%) !important;
-        
-        /* Texto Escuro para contraste máximo com o fundo neon */
         color: #020617 !important; 
-        
         border: none !important;
         padding: 0.85rem 2rem !important;
-        font-weight: 900 !important; /* Fonte mais grossa */
+        font-weight: 900 !important;
         border-radius: 12px !important;
         text-transform: uppercase;
         letter-spacing: 1.5px !important;
         width: 100%;
         transition: all 0.3s ease !important;
-        box-shadow: 0 4px 15px rgba(0, 255, 163, 0.3) !important; /* Sombra verde */
+        box-shadow: 0 4px 15px rgba(0, 255, 163, 0.3) !important;
     }
     
     div.stButton > button:hover { 
-        box-shadow: 0 0 40px rgba(0, 255, 163, 0.7) !important; /* Brilho intenso ao passar o mouse */
+        box-shadow: 0 0 40px rgba(0, 255, 163, 0.7) !important;
         transform: scale(1.03) !important;
         color: black !important;
     }
     
-    div[data-testid="stMetricValue"] { color: #00FFA3 !important; } /* Métricas também em verde neon */
+    div[data-testid="stMetricValue"] { color: #00FFA3 !important; }
 </style>
 """, unsafe_allow_html=True)
 
