@@ -229,7 +229,7 @@ if menu_opcao == "🏠 Início":
                 Transformando a <span style="color: #00FFA3; font-weight: 700;">Empregabilidade PCD</span> com Inteligência de Dados
             </h3>
             <p style="font-size: 1.15rem; max-width: 800px; margin: 20px auto 0 auto; color: #CBD5E1; line-height: 1.6;">
-                Somos o elo tecnológico entre o talento resiliente de <b>Sergipe</b> e o mercado de trabalho. 
+                Somos o elo tecnológico entre o talento resiliente do <b>Brasil</b> e o mercado de trabalho. 
                 Nossa plataforma utiliza <b>Engenharia de Dados</b> para validar habilidades e garantir que a diversidade não seja apenas uma meta, mas um valor real.
             </p>
         </div>
