@@ -320,7 +320,7 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
 
     if st.session_state.get('novo_cadastro'):
         st.balloons()
-        st.success("✅ Cadastro realizado! Dados na planilha e arquivos enviados para o e-mail do admin.")
+        st.success("✅ Cadastro realizado!")
         col_down1, col_down2, col_down3 = st.columns([1,2,1])
         with col_down2:
             st.download_button("📥 BAIXAR CURRÍCULO (PDF)", st.session_state['pdf_download'], 

@@ -1,7 +1,4 @@
 streamlit
-fpdf
 pandas
-google-genai
-geopy
-streamlit-mic-recorder
+fpdf
 st-gsheets-connection
