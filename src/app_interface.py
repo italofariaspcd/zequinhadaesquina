@@ -1,305 +1,332 @@
 import streamlit as st
 import pandas as pd
-import sqlite3
-import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
+from email.mime.application import MIMEApplication
 from fpdf import FPDF
+import time
+from streamlit_gsheets import GSheetsConnection
 
-# --- INFRAESTRUTURA E BANCO (Mantidos conforme original) ---
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, 'zequinha.db')
+# --- LISTA DE ESTADOS (CONSTANTE) ---
+ESTADOS_BRASIL = [
+    "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", 
+    "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+]
 
-def init_db():
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS profissional_pcd (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nome TEXT, email TEXT, cidade TEXT, area_atuacao TEXT, 
-                tipo_deficiencia TEXT, bio TEXT, telefone TEXT, 
-                linkedin TEXT, curriculo_pdf BLOB, laudo_pcd BLOB
-            )
-        """)
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Zequinha da Esquina | Ecossistema PCD", page_icon="♿", layout="wide")
 
-init_db()
+# --- CONEXÃO COM GOOGLE SHEETS ---
+conn = st.connection("gsheets", type=GSheetsConnection)
 
-st.set_page_config(page_title="Zequinha | Ecossistema PCD", page_icon="♿", layout="wide")
+def carregar_dados():
+    try:
+        df = conn.read(ttl=5)
+        colunas_esperadas = ["nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", "bio", "telefone", "linkedin"]
+        if df.empty or not set(colunas_esperadas).issubset(df.columns):
+            return pd.DataFrame(columns=colunas_esperadas)
+        return df
+    except:
+        return pd.DataFrame(columns=["nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", "bio", "telefone", "linkedin"])
 
-# --- DESIGN SYSTEM PREMIUM (UI/UX OTIMIZADA) ---
+def salvar_no_google_sheets(novo_dado_dict):
+    try:
+        df_atual = carregar_dados()
+        novo_df = pd.DataFrame([novo_dado_dict])
+        df_final = pd.concat([df_atual, novo_df], ignore_index=True)
+        conn.update(data=df_final)
+        return True
+    except Exception as e:
+        st.error(f"Erro ao salvar na nuvem: {e}")
+        return False
+
+# --- FUNÇÃO DE EMAIL (PARA SALVAR OS ARQUIVOS) ---
+def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_cv=None):
+    try:
+        email_sender = st.secrets["email"]["usuario"]
+        email_password = st.secrets["email"]["senha"]
+        email_receiver = st.secrets["email"]["destinatario"]
+
+        msg = MIMEMultipart()
+        msg['From'] = email_sender
+        msg['To'] = email_receiver
+        msg['Subject'] = f"📄 Novo Cadastro PCD: {dados['nome']} - {dados['area']}"
+
+        corpo = f"""
+        NOVO TALENTO CADASTRADO NO SISTEMA:
+        
+        Nome: {dados['nome']}
+        Cidade: {dados['cidade']}
+        Deficiência: {dados['tipo_d']}
+        Área: {dados['area']}
+        Email: {dados['email']}
+        WhatsApp: {dados['tel']}
+        LinkedIn: {dados['linkedin']}
+        
+        Bio:
+        {dados['bio']}
+        
+        *Os arquivos do Laudo e Currículo estão em anexo.*
+        """
+        msg.attach(MIMEText(corpo, 'plain'))
+
+        if arquivo_laudo:
+            part = MIMEApplication(arquivo_laudo, Name=nome_laudo)
+            part['Content-Disposition'] = f'attachment; filename="{nome_laudo}"'
+            msg.attach(part)
+
+        if arquivo_cv:
+            part = MIMEApplication(arquivo_cv, Name=nome_cv)
+            part['Content-Disposition'] = f'attachment; filename="{nome_cv}"'
+            msg.attach(part)
+
+        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server.starttls()
+        server.login(email_sender, email_password)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar email: {e}")
+        return False
+
+# --- DESIGN SYSTEM PREMIUM (CSS ATUALIZADO - BOTÕES VISÍVEIS) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
-    
     * { font-family: 'Plus Jakarta Sans', sans-serif; }
-
-    /* Fundo com profundidade */
-    .stApp {
-        background: radial-gradient(circle at 20% 20%, #1e293b 0%, #0f172a 100%);
-    }
-
-    /* Manifesto com Design de Vidro (Glassmorphism) e Animação */
-    .manifesto-container {
-        background: rgba(255, 255, 255, 0.02);
-        backdrop-filter: blur(12px);
-        padding: 60px;
-        border-radius: 40px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        margin-bottom: 50px;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        text-align: center;
-    }
-
-    .main-header {
-        font-size: 4rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #00F2FF 0%, #7000FF 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -2px;
-        margin-bottom: 10px;
-    }
-
-    .sub-header {
-        color: #94A3B8;
-        font-size: 1.4rem;
-        font-weight: 400;
-        margin-bottom: 30px;
-    }
-
-    .highlight { color: #00F2FF; font-weight: 700; }
-
-    /* Cards de Talentos Estilo 'Glass-Material' */
+    
+    .stApp { background: radial-gradient(circle at 10% 10%, #0f172a 0%, #020617 100%); }
+    
+    section[data-testid="stSidebar"] { background-color: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.05); }
+    
+    h1, h2, h3 { color: white !important; }
+    p, label { color: #94A3B8 !important; }
+    
     .card-talento {
-        background: rgba(30, 41, 59, 0.4);
-        padding: 30px;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        margin-bottom: 25px;
-        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
+        padding: 25px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05);
+        margin-bottom: 20px; transition: transform 0.3s ease;
     }
+    .card-talento:hover { transform: translateY(-5px); border-color: #00FFA3; }
     
-    .card-talento:hover {
-        transform: translateY(-10px) scale(1.02);
-        border-color: #00F2FF;
-        background: rgba(30, 41, 59, 0.7);
-        box-shadow: 0 20px 40px rgba(0, 242, 255, 0.15);
+    .badge { background: rgba(0, 242, 255, 0.1); color: #00F2FF; padding: 4px 12px; border-radius: 8px; font-weight: 700; border: 1px solid rgba(0, 242, 255, 0.2); }
+    
+    .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
+        background-color: #1E293B !important; color: white !important; border: 1px solid #334155 !important; border-radius: 10px !important;
     }
 
-    /* Tabs Futuristas */
-    .stTabs [data-baseweb="tab-list"] {
-        display: flex;
-        justify-content: center;
-        gap: 30px;
-        background: transparent;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background: rgba(255, 255, 255, 0.05) !important;
-        border-radius: 15px;
-        padding: 10px 30px;
-        color: #64748B;
-        font-weight: 600;
-        transition: 0.3s;
-    }
-    .stTabs [aria-selected="true"] {
-        background: #00F2FF !important;
-        color: #0F172A !important;
-        box-shadow: 0 0 30px rgba(0, 242, 255, 0.3);
-    }
-
-    /* Inputs Estilizados */
-    .stTextInput input, .stTextArea textarea, .stSelectbox [data-baseweb="select"] {
-        background-color: rgba(15, 23, 42, 0.8) !important;
-        border: 1px solid rgba(255, 255, 255, 0.1) !important;
-        border-radius: 12px !important;
-        color: white !important;
-    }
-
-    /* Botão de Ação Principal - Efeito Neon */
-    div.stButton > button:first-child {
-        background: linear-gradient(90deg, #00F2FF, #006AFF) !important;
-        color: white !important;
+    /* --- BOTÕES MAIS VISÍVEIS (ALTO CONTRASTE) --- */
+    div.stButton > button {
+        /* Gradiente Verde Neon para Ciano (Muito Brilhante) */
+        background: linear-gradient(90deg, #00FFA3 0%, #00F2FF 100%) !important;
+        
+        /* Texto Escuro para contraste máximo com o fundo neon */
+        color: #020617 !important; 
+        
         border: none !important;
-        padding: 18px 40px !important;
-        font-size: 1.1rem !important;
-        font-weight: 800 !important;
-        border-radius: 15px !important;
+        padding: 0.85rem 2rem !important;
+        font-weight: 900 !important; /* Fonte mais grossa */
+        border-radius: 12px !important;
         text-transform: uppercase;
-        letter-spacing: 2px;
-        box-shadow: 0 10px 20px rgba(0, 106, 255, 0.3);
+        letter-spacing: 1.5px !important;
         width: 100%;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 15px rgba(0, 255, 163, 0.3) !important; /* Sombra verde */
     }
     
-    div.stButton > button:hover {
-        box-shadow: 0 0 40px rgba(0, 242, 255, 0.5);
-        transform: translateY(-2px);
+    div.stButton > button:hover { 
+        box-shadow: 0 0 40px rgba(0, 255, 163, 0.7) !important; /* Brilho intenso ao passar o mouse */
+        transform: scale(1.03) !important;
+        color: black !important;
     }
-
-    /* Badge de Deficiência */
-    .badge {
-        background: linear-gradient(90deg, rgba(0,242,255,0.1), rgba(0,106,255,0.1));
-        color: #00F2FF;
-        border: 1px solid rgba(0,242,255,0.3);
-        padding: 4px 15px;
-        border-radius: 100px;
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-    }
+    
+    div[data-testid="stMetricValue"] { color: #00FFA3 !important; } /* Métricas também em verde neon */
 </style>
 """, unsafe_allow_html=True)
 
-# --- GERADOR DE PDF E EMAIL (Mantidos) ---
+# --- GERADOR PDF ---
 def gerar_pdf_pcd(dados):
     pdf = FPDF()
     pdf.add_page()
     def fix(t): return str(t).encode('latin-1', 'replace').decode('latin-1')
     pdf.set_font("Arial", 'B', 18)
     pdf.set_text_color(0, 106, 255)
-    pdf.cell(200, 15, txt=fix("ZEQUINHA DA ESQUINA - CURRÍCULO"), ln=True, align='C')
+    pdf.cell(0, 15, txt=fix("ZEQUINHA DA ESQUINA - CURRÍCULO NACIONAL"), ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt=f"NOME: {fix(dados['nome'].upper())}", ln=True)
+    pdf.set_text_color(0, 0, 0)
+    pdf.cell(0, 10, txt=f"CANDIDATO: {fix(dados['nome'].upper())}", ln=True)
     pdf.set_font("Arial", '', 11)
-    pdf.cell(200, 8, txt=fix(f"E-mail: {dados['email']} | WhatsApp: {dados['tel']}"), ln=True)
-    if dados['linkedin']: pdf.cell(200, 8, txt=fix(f"LinkedIn: {dados['linkedin']}"), ln=True)
-    pdf.cell(200, 8, txt=fix(f"Local: {dados['cidade']} | Deficiência: {dados['tipo_d']}"), ln=True)
+    pdf.cell(0, 8, txt=fix(f"Contato: {dados['email']} | Tel: {dados['tel']}"), ln=True)
+    if dados['linkedin']: pdf.cell(0, 8, txt=fix(f"LinkedIn: {dados['linkedin']}"), ln=True)
+    pdf.cell(0, 8, txt=fix(f"Local: {dados['cidade']} | Deficiência: {dados['tipo_d']}"), ln=True)
+    pdf.ln(5)
+    pdf.line(10, pdf.get_y(), 200, pdf.get_y())
     pdf.ln(5)
     pdf.set_font("Arial", 'B', 12)
-    pdf.cell(200, 10, txt=fix("RESUMO PROFISSIONAL:"), ln=True)
+    pdf.cell(0, 10, txt=fix("RESUMO & OBJETIVOS:"), ln=True)
     pdf.set_font("Arial", '', 11)
     pdf.multi_cell(0, 8, txt=fix(dados['bio']))
     return pdf.output(dest='S').encode('latin-1')
 
-def enviar_notificacao_email(nome, email, area, deficiencia, tel, bio, linkedin, arquivo_laudo=None, arquivo_cv=None):
-    try:
-        remetente = st.secrets["EMAIL_USER"]
-        senha = st.secrets["EMAIL_PASSWORD"]
-        destinatario = st.secrets["EMAIL_DESTINATARIO"]
-        msg = MIMEMultipart()
-        msg['From'] = remetente
-        msg['To'] = destinatario
-        msg['Subject'] = f"🆕 Novo Cadastro PCD: {nome} - {area}"
-        corpo = f"Nome: {nome}\nE-mail: {email}\nÁrea: {area}\nDeficiência: {deficiencia}\nWhatsApp: {tel}\nBio: {bio}"
-        msg.attach(MIMEText(corpo, 'plain'))
-        with smtplib.SMTP('smtp.gmail.com', 587) as server:
-            server.starttls()
-            server.login(remetente, senha)
-            server.send_message(msg)
-        return True
-    except: return False
+# --- SIDEBAR ---
+with st.sidebar:
+    st.markdown("<h1 style='text-align: center;'>♿</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 1.5rem;'>Zequinha<br>da Esquina</h2>", unsafe_allow_html=True)
+    st.markdown("---")
+    menu_opcao = st.radio("NAVEGAÇÃO", ["🏠 Início", "🔍 Buscar Talentos", "🚀 Cadastrar Perfil"], label_visibility="collapsed")
+    st.markdown("---")
+    st.info("💡 **Conectado:** Google Cloud & Backup Email.")
 
-# --- UI CONTENT ---
-st.markdown(f"""
-    <div class="manifesto-container">
-        <p class="header"> ZEQUINA DA ESQUINA </p>
-        <p class="sub-header">Transformando a <span class="highlight">Empregabilidade PCD</span> com Inteligência de Dados</p>
-        <p style="font-size: 1.15rem; color: #CBD5E1; line-height: 1.8; max-width: 850px; margin: 0 auto;">
-            Somos o elo tecnológico entre o talento resiliente de Sergipe e o mercado de trabalho. 
-            Nossa plataforma utiliza <b>Engenharia de Dados</b> para validar habilidades e garantir 
-            que a diversidade não seja apenas uma meta, mas um valor real.
-        </p>
-    </div>
-""", unsafe_allow_html=True)
+# --- PÁGINAS ---
+if menu_opcao == "🏠 Início":
+    st.markdown("""
+        <div style="text-align: center; padding: 40px 0;">
+            <h1 style="font-size: 3rem; background: linear-gradient(to right, #00FFA3, #00F2FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+                ZEQUINHA DA ESQUINA<br>O ECOSSISTEMA DO PCD
+            </h1>
+            <h3 style="color: #94A3B8; font-weight: 400; margin-top: 20px;">
+                Transformando a <span style="color: #00FFA3; font-weight: 700;">Empregabilidade PCD</span> com Inteligência de Dados
+            </h3>
+            <p style="font-size: 1.15rem; max-width: 800px; margin: 20px auto 0 auto; color: #CBD5E1; line-height: 1.6;">
+                Somos o elo tecnológico entre o talento resiliente de <b>Sergipe</b> e o mercado de trabalho. 
+                Nossa plataforma utiliza <b>Engenharia de Dados</b> para validar habilidades e garantir que a diversidade não seja apenas uma meta, mas um valor real.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
 
-tab_busca, tab_vagas, tab_cadastro = st.tabs(["🔍 MURAL DE TALENTOS", "💼 OPORTUNIDADES", "🚀 MEU PERFIL"])
-
-with tab_busca:
-    st.markdown("<h3 style='text-align: center; color: white;'>Encontre o Talento Ideal</h3>", unsafe_allow_html=True)
-    c1, c2 = st.columns([2, 1])
-    with c1:
-        f_def = st.multiselect("Filtrar por Deficiência:", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
-    with c2:
-        f_cid = st.text_input("Filtrar por Cidade", placeholder="Aracaju, SE")
-
-    if st.button("ATUALIZAR BUSCA"):
-        with sqlite3.connect(DB_PATH) as conn:
-            query = "SELECT nome, cidade, area_atuacao, tipo_deficiencia, bio, linkedin FROM profissional_pcd WHERE 1=1"
-            params = []
-            if f_def:
-                query += f" AND tipo_deficiencia IN ({','.join(['?']*len(f_def))})"
-                params.extend(f_def)
-            if f_cid:
-                query += " AND cidade LIKE ?"
-                params.append(f"%{f_cid}%")
-            
-            df = pd.read_sql_query(query, conn, params=params)
-            
-            if df.empty:
-                st.info("Nenhum talento disponível nesta categoria no momento.")
-            else:
-                col_cards = st.columns(2)
-                for i, t in df.iterrows():
-                    with col_cards[i % 2]:
-                        st.markdown(f'''
-                            <div class="card-talento">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px;">
-                                    <span class="badge">{t["tipo_deficiencia"]}</span>
-                                    <span style="color: #64748B; font-size: 0.8rem;">📍 {t["cidade"]}</span>
-                                </div>
-                                <h3 style="color: white; margin-bottom: 5px;">{t["nome"]}</h3>
-                                <p style="color: #00F2FF; font-weight: 600; margin-bottom: 15px;">{t["area_atuacao"]}</p>
-                                <p style="color: #94A3B8; font-size: 0.95rem; line-height: 1.6; height: 80px; overflow: hidden;">{t["bio"][:150]}...</p>
-                                <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05);">
-                                    {f'<a href="{t["linkedin"]}" target="_blank" style="color: #00F2FF; text-decoration: none; font-weight: bold; font-size: 0.9rem;">CONECTAR VIA LINKEDIN →</a>' if t["linkedin"] else ''}
-                                </div>
-                            </div>
-                        ''', unsafe_allow_html=True)
-
-with tab_vagas:
-    st.markdown("<div style='text-align: center; padding: 50px;'>", unsafe_allow_html=True)
-    st.image("https://cdn-icons-png.flaticon.com/512/1063/1063196.png", width=100)
-    st.markdown("<h3 style='color: white;'>Vagas em Sergipe</h3><p style='color: #94A3B8;'>Estamos conectando novas empresas parceiras. Volte em breve!</p>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
-
-with tab_cadastro:
-    st.markdown("<h3 style='color: white;'>Impulsione sua Carreira</h3>", unsafe_allow_html=True)
+    total_talentos, estados_alcancados, areas_distintas = 0, 0, 0
+    df_metrics = carregar_dados()
+    if not df_metrics.empty:
+        total_talentos = len(df_metrics)
+        if 'area_atuacao' in df_metrics.columns: areas_distintas = df_metrics['area_atuacao'].nunique()
+        if 'cidade' in df_metrics.columns:
+            estados = df_metrics['cidade'].apply(lambda x: str(x).split('-')[-1].strip() if '-' in str(x) else None)
+            estados_alcancados = estados.nunique()
     
-    with st.form("cadastro_premium"):
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Talentos Cadastrados", f"{total_talentos}")
+    c2.metric("Estados Alcançados", f"{estados_alcancados}")
+    c3.metric("Áreas de Atuação", f"{areas_distintas}")
+    st.markdown("<br><br>", unsafe_allow_html=True)
+
+elif menu_opcao == "🔍 Buscar Talentos":
+    st.markdown("## 🔍 Encontre o Profissional Ideal")
+    with st.expander("🛠️ Filtros de Pesquisa Avançada", expanded=True):
+        c1, c2, c3 = st.columns([2, 1, 2])
+        with c1: f_def = st.multiselect("Tipo de Deficiência", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
+        with c2: f_uf = st.selectbox("Estado (UF)", ["Todos"] + ESTADOS_BRASIL)
+        with c3: f_cidade = st.text_input("Cidade", placeholder="Nome da cidade")
+        btn_buscar = st.button("Aplicar Filtros e Buscar", type="primary")
+
+    if btn_buscar:
+        with st.spinner("Buscando na nuvem..."):
+            df = carregar_dados()
+            if not df.empty:
+                if f_def: df = df[df['tipo_deficiencia'].isin(f_def)]
+                if f_uf != "Todos": df = df[df['cidade'].str.contains(f_uf, na=False, case=False)]
+                if f_cidade: df = df[df['cidade'].str.contains(f_cidade, na=False, case=False)]
+
+        if df.empty: st.warning("Nenhum talento encontrado.")
+        else:
+            st.success(f"🎉 Encontramos **{len(df)}** profissionais!")
+            col_cards = st.columns(2)
+            for i, t in df.iterrows():
+                with col_cards[i % 2]:
+                    st.markdown(f'''
+                        <div class="card-talento">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                                <span class="badge">{t.get('tipo_deficiencia', 'PCD')}</span>
+                                <small style="color: #94A3B8;">📍 {t.get('cidade', 'BR')}</small>
+                            </div>
+                            <h3 style="margin: 0; font-size: 1.3rem;">{t.get('nome', 'Nome')}</h3>
+                            <p style="color: #00FFA3; font-weight: 600; font-size: 0.9rem;">{t.get('area_atuacao', 'Geral')}</p>
+                            <p style="font-size: 0.9rem; color: #CBD5E1; margin: 15px 0;">{str(t.get('bio', ''))[:140]}...</p>
+                            {f'<a href="{t.get("linkedin","")}" target="_blank" style="color: #00FFA3;">🔗 VISITAR LINKEDIN</a>' if t.get("linkedin") else ''}
+                        </div>
+                    ''', unsafe_allow_html=True)
+
+elif menu_opcao == "🚀 Cadastrar Perfil":
+    st.markdown("## 🚀 Crie seu Perfil Profissional")
+    with st.form("form_cadastro"):
+        st.markdown("#### 1. Dados Pessoais & Localização")
         c1, c2 = st.columns(2)
         with c1:
             nome = st.text_input("Nome Completo*")
-            email = st.text_input("E-mail para Contato*")
-            area = st.text_input("Área de Especialidade*")
-            tel = st.text_input("WhatsApp")
+            email = st.text_input("E-mail*")
         with c2:
-            tipo_d = st.selectbox("Sua Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
-            cid = st.text_input("Sua Cidade", value="Aracaju")
-            link_in = st.text_input("Link do LinkedIn")
-            cv_f = st.file_uploader("Upload de Currículo (PDF)", type=["pdf"])
-            laudo_f = st.file_uploader("Upload de Laudo (Obrigatório)*", type=["pdf"])
-        
-        bio = st.text_area("Descreva sua jornada profissional e sonhos*")
-        submit = st.form_submit_button("CRIAR MEU PERFIL AGORA")
+            tel = st.text_input("WhatsApp (com DDD)")
+            cc, cu = st.columns([3, 1])
+            with cc: cidade_input = st.text_input("Sua Cidade*")
+            with cu: uf_input = st.selectbox("UF*", ESTADOS_BRASIL, index=25)
+
+        st.markdown("---")
+        st.markdown("#### 2. Perfil Profissional")
+        cp1, cp2 = st.columns(2)
+        with cp1:
+            area = st.text_input("Área de Atuação*")
+            tipo_d = st.selectbox("Tipo de Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
+        with cp2: link_in = st.text_input("LinkedIn (URL)")
+        bio = st.text_area("Resumo Profissional (Bio)*", height=150)
+
+        st.markdown("---")
+        st.markdown("#### 3. Documentação")
+        cd1, cd2 = st.columns(2)
+        with cd1: laudo_f = st.file_uploader("📂 Laudo PCD (Obrigatório)", type=["pdf", "jpg", "png"])
+        with cd2: cv_f = st.file_uploader("📄 Currículo (Opcional)", type=["pdf"])
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        submit = st.form_submit_button("✅ SALVAR E GERAR CURRÍCULO")
 
     if submit:
-        if nome and email and area and laudo_f and bio:
-            with st.spinner("🚀 Lançando seu perfil ao mercado..."):
-                laudo_blob = laudo_f.read()
-                cv_blob = cv_f.read() if cv_f else None
-                with sqlite3.connect(DB_PATH) as conn:
-                    conn.execute("""
-                        INSERT INTO profissional_pcd 
-                        (nome, email, cidade, area_atuacao, tipo_deficiencia, bio, telefone, linkedin, curriculo_pdf, laudo_pcd) 
-                        VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                        (nome, email, cid, area, tipo_d, bio, tel, link_in, cv_blob, laudo_blob))
-                
-                st.session_state['pdf_bytes'] = gerar_pdf_pcd({"nome": nome, "email": email, "tel": tel, "tipo_d": tipo_d, "cidade": cid, "area": area, "bio": bio, "linkedin": link_in})
-                st.session_state['nome_usuario'] = nome
-                st.success("✨ Seu perfil agora faz parte do Ecossistema Zequinha!")
-                st.balloons()
+        if not (nome and email and area and cidade_input and bio and laudo_f):
+            st.error("⚠️ Preencha os campos obrigatórios (*).")
         else:
-            st.error("Ops! Campos obrigatórios (*) precisam de atenção.")
+            cidade_final = f"{cidade_input} - {uf_input}"
+            with st.spinner("💾 Salvando dados e enviando arquivos para backup..."):
+                novo_cadastro = {
+                    "nome": nome, "email": email, "cidade": cidade_final, "area_atuacao": area,
+                    "tipo_deficiencia": tipo_d, "bio": bio, "telefone": tel, "linkedin": link_in
+                }
+                
+                sucesso_sheet = salvar_no_google_sheets(novo_cadastro)
+                
+                laudo_bytes = laudo_f.read()
+                laudo_nome = laudo_f.name
+                cv_bytes = cv_f.read() if cv_f else None
+                cv_nome = cv_f.name if cv_f else None
 
-    if 'pdf_bytes' in st.session_state:
-        st.markdown("<div style='background: rgba(0,242,255,0.1); padding: 30px; border-radius: 20px; border: 1px dashed #00F2FF; text-align: center;'>", unsafe_allow_html=True)
-        st.markdown("<h4 style='color: white; margin-bottom: 20px;'>Pronto para brilhar! Baixe sua versão padronizada:</h4>", unsafe_allow_html=True)
-        st.download_button(
-            label="📄 BAIXAR CURRÍCULO PROFISSIONAL",
-            data=st.session_state['pdf_bytes'],
-            file_name=f"Zequinha_CV_{st.session_state['nome_usuario']}.pdf",
-            mime="application/pdf"
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
+                sucesso_email = enviar_email_backup(
+                    {"nome": nome, "email": email, "cidade": cidade_final, "area": area, 
+                     "tipo_d": tipo_d, "bio": bio, "tel": tel, "linkedin": link_in},
+                    laudo_bytes, laudo_nome, cv_bytes, cv_nome
+                )
+
+                if sucesso_sheet:
+                    pdf_bytes = gerar_pdf_pcd({
+                        "nome": nome, "email": email, "tel": tel, "tipo_d": tipo_d, 
+                        "cidade": cidade_final, "area": area, "bio": bio, "linkedin": link_in
+                    })
+                    st.session_state['novo_cadastro'] = True
+                    st.session_state['pdf_download'] = pdf_bytes
+                    st.session_state['nome_download'] = nome
+                    
+                    if not sucesso_email:
+                        st.warning("⚠️ Dados salvos, mas houve um erro ao enviar os arquivos por email. Verifique as credenciais.")
+                else:
+                    st.error("Erro ao conectar com a planilha.")
+
+    if st.session_state.get('novo_cadastro'):
+        st.balloons()
+        st.success("✅ Cadastro realizado! Dados na planilha e arquivos enviados para o e-mail do admin.")
+        col_down1, col_down2, col_down3 = st.columns([1,2,1])
+        with col_down2:
+            st.download_button("📥 BAIXAR CURRÍCULO (PDF)", st.session_state['pdf_download'], 
+                             file_name=f"CV_{st.session_state['nome_download']}.pdf", mime="application/pdf")
+        if st.button("Fazer novo cadastro"):
+            del st.session_state['novo_cadastro']
+            st.rerun()
+
+st.components.v1.html("""<div vw class="enabled"><div vw-access-button class="active"></div><div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div></div><script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script><script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>""", height=0)
