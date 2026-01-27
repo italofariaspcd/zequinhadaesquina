@@ -367,4 +367,15 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
             del st.session_state['novo_cadastro']
             st.rerun()
 
+# --- RODAPÉ COM APOIO (PIX) ---
+st.markdown("""
+<hr style="border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 50px; margin-bottom: 20px;">
+<div style="text-align: center; color: #94A3B8; font-size: 0.85rem; padding-bottom: 30px;">
+    © 2026 Zequinha da Esquina - O Ecossistema do PCD 
+    <span style="margin: 0 10px; opacity: 0.3;">|</span> 
+    <span style="color: #E2E8F0;">Apoie este projeto:</span> 
+    <strong style="color: #00FFA3; margin-left: 5px;">Chave Pix CNPJ: 55.340.700/0001-17</strong>
+</div>
+""", unsafe_allow_html=True)
+
 st.components.v1.html("""<div vw class="enabled"><div vw-access-button class="active"></div><div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div></div><script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script><script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>""", height=0)
