@@ -441,7 +441,7 @@ st.markdown("""
 <hr style="border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 50px; margin-bottom: 20px;">
 <div style="text-align: center; color: #94A3B8; font-size: 0.85rem; padding-bottom: 30px; line-height: 1.6;">
     © 2026 Zequinha da Esquina - O Ecossistema do PCD <br>
-    <span style="font-size: 0.75rem; opacity: 0.7;">Powered by <b>Caju Valley Solutions</b></span>
+    <span style="font-size: 0.75rem; opacity: 0.7;">Powered by <b>THE EFFICIENT TECHNOLOGY</b></span>
     <br><br>
     <span style="color: #E2E8F0; border: 1px solid rgba(255, 255, 255, 0.1); padding: 5px 15px; border-radius: 20px; background: rgba(255,255,255,0.02);">
         ☕ Apoie este projeto: <strong style="color: #00FFA3;">PIX (CNPJ) 55.340.700/0001-17</strong>
