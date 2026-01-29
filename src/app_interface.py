@@ -274,7 +274,7 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
 st.markdown(f"""
 <hr style="border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 50px; margin-bottom: 20px;">
 <div style="text-align: center; color: #94A3B8; font-size: 0.85rem; padding-bottom: 30px;">
-    © 2026 Zequinha da Esquina - O Ecossistema do PCD | Apoie: o ZEQUINHA DA ESQUINA O ECOSSISTEMA DO PCD - PIX 55.340.700/0001-17
+    © 2026 Zequinha da Esquina - O Ecossistema do PCD | Apoie: ZEQUINHA DA ESQUINA O ECOSSISTEMA DO PCD - PIX 55.340.700/0001-17
 </div>
 """, unsafe_allow_html=True)
 
