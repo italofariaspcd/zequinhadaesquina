@@ -8,7 +8,7 @@ from fpdf import FPDF
 import time
 from streamlit_gsheets import GSheetsConnection
 import urllib.parse
-import re  # IMPORT NOVO: Para limpar o telefone
+import re
 
 # --- LISTA DE ESTADOS (CONSTANTE) ---
 ESTADOS_BRASIL = [
@@ -25,16 +25,22 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 def carregar_dados():
     try:
         df = conn.read(ttl=10)
-        # ATUALIZAÇÃO: Adicionado 'home_office' nas colunas esperadas
         colunas_esperadas = [
             "nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", 
             "bio", "telefone", "linkedin", "raca", "orientacao_sexual", 
             "data_aceite_lgpd", "home_office"
         ]
         
-        if df.empty or not set(colunas_esperadas).issubset(df.columns):
+        # Garante a existência do DataFrame e das colunas, mesmo se vazio
+        if df.empty:
             return pd.DataFrame(columns=colunas_esperadas)
-        return df
+            
+        # Schema Evolution: Cria colunas faltantes se a planilha for antiga
+        for col in colunas_esperadas:
+            if col not in df.columns:
+                df[col] = None
+                
+        return df[colunas_esperadas]
     except:
         return pd.DataFrame(columns=[
             "nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", 
@@ -65,7 +71,6 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         msg['To'] = email_receiver
         msg['Subject'] = f"📄 Novo Cadastro PCD: {dados['nome']} - {dados['area_atuacao']}"
 
-        # Formata o Home Office para texto
         texto_ho = "Sim" if dados.get('home_office') else "Não"
 
         corpo = f"""
@@ -123,8 +128,9 @@ st.markdown("""
     h1, h2, h3 { color: white !important; }
     p, label, .stCheckbox label { color: #94A3B8 !important; }
     
+    /* Melhoria UX: Botões de Navegação mais visíveis */
     section[data-testid="stSidebar"] .stRadio label {
-        color: #94A3B8 !important; font-weight: 500 !important; padding: 10px !important;
+        color: #94A3B8 !important; font-weight: 500 !important; padding: 12px !important;
         margin-bottom: 5px !important; transition: all 0.2s ease-in-out !important; 
         border-left: 4px solid transparent; cursor: pointer;
     }
@@ -187,7 +193,6 @@ def gerar_pdf_pcd(dados):
     pdf.set_font("Arial", '', 11)
     pdf.cell(0, 8, txt=fix(f"Contato: {dados['email']} | Tel: {dados['telefone']}"), ln=True)
     
-    # Adicionado info de Home Office no PDF
     ho_text = "SIM" if dados.get('home_office') else "NÃO"
     pdf.cell(0, 8, txt=fix(f"Local: {dados['cidade']} | Home Office: {ho_text}"), ln=True)
     pdf.cell(0, 8, txt=fix(f"Deficiência: {dados['tipo_deficiencia']}"), ln=True)
@@ -214,7 +219,6 @@ with st.sidebar:
     menu_opcao = st.radio("NAVEGAÇÃO", ["🏠 Início", "🔍 Buscar Talentos", "💼 Vagas em Aberto", "🚀 Cadastrar Perfil"], label_visibility="collapsed")
     st.markdown("---")
     
-    # NOVO: BIO DO DESENVOLVEDOR (Autoridade)
     with st.expander("👨‍💻 Sobre o Desenvolvedor"):
         st.markdown("""
         <div style="font-size: 0.85rem; color: #CBD5E1;">
@@ -264,12 +268,23 @@ if menu_opcao == "🏠 Início":
     c2.metric("Estados Alcançados", f"{estados_alcancados}")
     c3.metric("Áreas de Atuação", f"{areas_distintas}")
     
+    st.markdown("---")
     st.markdown("<br>", unsafe_allow_html=True)
-    if not df_metrics.empty and 'area_atuacao' in df_metrics.columns:
-        st.markdown("#### 📊 Distribuição de Talentos por Área")
-        chart_data = df_metrics['area_atuacao'].value_counts().head(10)
-        st.bar_chart(chart_data, color="#00FFA3")
-        st.caption("Top 10 áreas com mais profissionais cadastrados na plataforma.")
+
+    # --- NOVA SEÇÃO DE UX (Substituindo o Gráfico) ---
+    st.markdown("<h3 style='text-align:center;'>🚀 Como funciona o ecossistema?</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; margin-bottom: 30px;'>Conectamos talentos reais a oportunidades reais, sem burocracia.</p>", unsafe_allow_html=True)
+
+    col_ux1, col_ux2, col_ux3 = st.columns(3)
+    
+    with col_ux1:
+        st.info("**1. Para Talentos**\n\nCadastre seu perfil, anexe seu laudo e gere um currículo PDF profissional automaticamente. Sua vitrine para o mercado.")
+    
+    with col_ux2:
+        st.success("**2. Visibilidade**\n\nSeus dados são validados e exibidos em uma vitrine inteligente, filtrada por habilidades, localização e tipo de deficiência.")
+    
+    with col_ux3:
+        st.warning("**3. Conexão Direta**\n\nSem intermediários. Recrutadores encontram seu perfil e entram em contato direto via WhatsApp ou LinkedIn.")
 
 elif menu_opcao == "🔍 Buscar Talentos":
     st.markdown("## 🔍 Encontre o Profissional Ideal")
@@ -279,7 +294,6 @@ elif menu_opcao == "🔍 Buscar Talentos":
         with c2: f_uf = st.selectbox("Estado (UF)", ["Todos"] + ESTADOS_BRASIL)
         with c3: f_cidade = st.text_input("Cidade", placeholder="Nome da cidade")
         
-        # NOVO: Filtro Home Office
         f_remoto = st.checkbox("💻 Buscar apenas profissionais com interesse em Home Office")
         
         btn_buscar = st.button("Aplicar Filtros e Buscar", type="primary")
@@ -292,7 +306,6 @@ elif menu_opcao == "🔍 Buscar Talentos":
                 if f_uf != "Todos": df = df[df['cidade'].str.contains(f_uf, na=False, case=False)]
                 if f_cidade: df = df[df['cidade'].str.contains(f_cidade, na=False, case=False)]
                 
-                # Lógica do Filtro Home Office
                 if f_remoto and 'home_office' in df.columns:
                     df = df[df['home_office'] == True]
                 
@@ -302,7 +315,6 @@ elif menu_opcao == "🔍 Buscar Talentos":
                     st.success(f"Encontrados {len(df)} profissionais.")
                     col_cards = st.columns(2)
                     for i, t in df.iterrows():
-                        # Ícone de Home Office no Card
                         icone_ho = "💻" if t.get('home_office') else ""
                         with col_cards[i % 2]:
                             st.markdown(f'''
@@ -356,9 +368,7 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
             tipo_d = st.selectbox("Tipo de Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
         with cp2: link_in = st.text_input("LinkedIn (URL)")
         
-        # NOVO: Checkbox Home Office
         home_office = st.checkbox("💻 Tenho preferência por vagas 100% Home Office (Remoto)")
-        
         bio = st.text_area("Resumo Profissional (Bio)*", height=150)
 
         st.markdown("---")
@@ -388,7 +398,7 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
         if nome and email and area and cidade_input and bio and laudo_f and aceite_lgpd:
             cidade_final = f"{cidade_input} - {uf_input}"
             
-            # NOVO: Higienização do Telefone (Remove parenteses, traços e espaços)
+            # Higienização do Telefone
             tel_limpo = re.sub(r'\D', '', tel) if tel else ""
 
             novo_cadastro = {
@@ -396,7 +406,7 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
                 "tipo_deficiencia": tipo_d, "bio": bio, "telefone": tel_limpo, "linkedin": link_in,
                 "raca": raca, "orientacao_sexual": orientacao,
                 "data_aceite_lgpd": time.strftime("%Y-%m-%d %H:%M:%S"),
-                "home_office": home_office # Salva booleano (True/False)
+                "home_office": home_office 
             }
             
             with st.spinner("Processando dados e registrando consentimento..."):
