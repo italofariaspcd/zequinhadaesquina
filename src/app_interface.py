@@ -8,6 +8,7 @@ from fpdf import FPDF
 import time
 from streamlit_gsheets import GSheetsConnection
 import urllib.parse
+import re  # IMPORT NOVO: Para limpar o telefone
 
 # --- LISTA DE ESTADOS (CONSTANTE) ---
 ESTADOS_BRASIL = [
@@ -24,9 +25,11 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 def carregar_dados():
     try:
         df = conn.read(ttl=10)
+        # ATUALIZAÇÃO: Adicionado 'home_office' nas colunas esperadas
         colunas_esperadas = [
             "nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", 
-            "bio", "telefone", "linkedin", "raca", "orientacao_sexual", "data_aceite_lgpd"
+            "bio", "telefone", "linkedin", "raca", "orientacao_sexual", 
+            "data_aceite_lgpd", "home_office"
         ]
         
         if df.empty or not set(colunas_esperadas).issubset(df.columns):
@@ -35,7 +38,8 @@ def carregar_dados():
     except:
         return pd.DataFrame(columns=[
             "nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", 
-            "bio", "telefone", "linkedin", "raca", "orientacao_sexual", "data_aceite_lgpd"
+            "bio", "telefone", "linkedin", "raca", "orientacao_sexual", 
+            "data_aceite_lgpd", "home_office"
         ])
 
 def salvar_no_google_sheets(novo_dado_dict):
@@ -61,6 +65,9 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         msg['To'] = email_receiver
         msg['Subject'] = f"📄 Novo Cadastro PCD: {dados['nome']} - {dados['area_atuacao']}"
 
+        # Formata o Home Office para texto
+        texto_ho = "Sim" if dados.get('home_office') else "Não"
+
         corpo = f"""
         NOVO TALENTO CADASTRADO NO SISTEMA (LGPD ACEITO):
         
@@ -70,6 +77,7 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         Cidade: {dados['cidade']}
         Deficiência: {dados['tipo_deficiencia']}
         Área: {dados['area_atuacao']}
+        Interesse em Home Office: {texto_ho}
         Email: {dados['email']}
         WhatsApp: {dados['telefone']}
         LinkedIn: {dados['linkedin']}
@@ -178,7 +186,11 @@ def gerar_pdf_pcd(dados):
     
     pdf.set_font("Arial", '', 11)
     pdf.cell(0, 8, txt=fix(f"Contato: {dados['email']} | Tel: {dados['telefone']}"), ln=True)
-    pdf.cell(0, 8, txt=fix(f"Local: {dados['cidade']} | Deficiência: {dados['tipo_deficiencia']}"), ln=True)
+    
+    # Adicionado info de Home Office no PDF
+    ho_text = "SIM" if dados.get('home_office') else "NÃO"
+    pdf.cell(0, 8, txt=fix(f"Local: {dados['cidade']} | Home Office: {ho_text}"), ln=True)
+    pdf.cell(0, 8, txt=fix(f"Deficiência: {dados['tipo_deficiencia']}"), ln=True)
     
     if dados.get('linkedin'):
         pdf.cell(0, 8, txt=fix(f"LinkedIn: {dados['linkedin']}"), ln=True)
@@ -202,7 +214,17 @@ with st.sidebar:
     menu_opcao = st.radio("NAVEGAÇÃO", ["🏠 Início", "🔍 Buscar Talentos", "💼 Vagas em Aberto", "🚀 Cadastrar Perfil"], label_visibility="collapsed")
     st.markdown("---")
     
-    st.markdown("<p style='text-align:center; font-size:0.8rem; margin-bottom:5px;'>📢 Espalhe a inclusão:</p>", unsafe_allow_html=True)
+    # NOVO: BIO DO DESENVOLVEDOR (Autoridade)
+    with st.expander("👨‍💻 Sobre o Desenvolvedor"):
+        st.markdown("""
+        <div style="font-size: 0.85rem; color: #CBD5E1;">
+            Desenvolvido por <b>Italo Farias</b>.<br>
+            <i>Engenheiro de Dados & Paratleta.</i><br><br>
+            "A tecnologia é a maior ferramenta de inclusão que existe."
+        </div>
+        """, unsafe_allow_html=True)
+    
+    st.markdown("<p style='text-align:center; font-size:0.8rem; margin-bottom:5px; margin-top:20px;'>📢 Espalhe a inclusão:</p>", unsafe_allow_html=True)
     msg_share = urllib.parse.quote("Conheça o Zequinha da Esquina! O Ecossistema de empregabilidade PCD com inteligência de dados. Acesse: https://zequinhadaesquina.streamlit.app")
     st.markdown(f"""
         <a href="https://api.whatsapp.com/send?text={msg_share}" target="_blank" class="share-link share-wa">Compartilhar no WhatsApp</a>
@@ -256,6 +278,10 @@ elif menu_opcao == "🔍 Buscar Talentos":
         with c1: f_def = st.multiselect("Tipo de Deficiência", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
         with c2: f_uf = st.selectbox("Estado (UF)", ["Todos"] + ESTADOS_BRASIL)
         with c3: f_cidade = st.text_input("Cidade", placeholder="Nome da cidade")
+        
+        # NOVO: Filtro Home Office
+        f_remoto = st.checkbox("💻 Buscar apenas profissionais com interesse em Home Office")
+        
         btn_buscar = st.button("Aplicar Filtros e Buscar", type="primary")
 
     if btn_buscar:
@@ -266,12 +292,18 @@ elif menu_opcao == "🔍 Buscar Talentos":
                 if f_uf != "Todos": df = df[df['cidade'].str.contains(f_uf, na=False, case=False)]
                 if f_cidade: df = df[df['cidade'].str.contains(f_cidade, na=False, case=False)]
                 
+                # Lógica do Filtro Home Office
+                if f_remoto and 'home_office' in df.columns:
+                    df = df[df['home_office'] == True]
+                
                 if df.empty:
                     st.warning("Nenhum talento encontrado com esses filtros.")
                 else:
                     st.success(f"Encontrados {len(df)} profissionais.")
                     col_cards = st.columns(2)
                     for i, t in df.iterrows():
+                        # Ícone de Home Office no Card
+                        icone_ho = "💻" if t.get('home_office') else ""
                         with col_cards[i % 2]:
                             st.markdown(f'''
                                 <div class="card-talento">
@@ -280,7 +312,7 @@ elif menu_opcao == "🔍 Buscar Talentos":
                                         <span style="color: #00FFA3; font-size: 0.8rem;">{t.get('tipo_deficiencia', 'PCD')}</span>
                                     </div>
                                     <small style="color: #94A3B8;">{t.get('area_atuacao', 'Área')}</small><br>
-                                    <small>{t.get('cidade', '')}</small>
+                                    <small>{t.get('cidade', '')} {icone_ho}</small>
                                     <p style="font-size:0.8rem; margin-top: 10px; color: #CBD5E1;">{str(t.get('bio', ''))[:120]}...</p>
                                     {f'<a href="{t.get("linkedin")}" target="_blank" style="color:#00F2FF; text-decoration:none; font-size:0.8rem; font-weight:bold;">🔗 VER LINKEDIN</a>' if t.get("linkedin") else ''}
                                 </div>
@@ -323,6 +355,10 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
             area = st.text_input("Área de Atuação*")
             tipo_d = st.selectbox("Tipo de Deficiência*", ["Física", "Visual", "Auditiva", "Intelectual", "Autismo", "Múltipla"])
         with cp2: link_in = st.text_input("LinkedIn (URL)")
+        
+        # NOVO: Checkbox Home Office
+        home_office = st.checkbox("💻 Tenho preferência por vagas 100% Home Office (Remoto)")
+        
         bio = st.text_area("Resumo Profissional (Bio)*", height=150)
 
         st.markdown("---")
@@ -331,7 +367,6 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
         with cd1: laudo_f = st.file_uploader("📂 Laudo PCD (Obrigatório)", type=["pdf", "jpg", "png"])
         with cd2: cv_f = st.file_uploader("📄 Currículo (Opcional)", type=["pdf"])
 
-        # --- SEÇÃO DE CONSENTIMENTO LGPD ---
         st.markdown("<br>", unsafe_allow_html=True)
         with st.expander("🛡️ Termo de Consentimento e Tratamento de Dados (LGPD) - Clique para ler", expanded=False):
             st.markdown("""
@@ -345,21 +380,23 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
             """)
         
         aceite_lgpd = st.checkbox("✅ Declaro que li e concordo com o tratamento dos meus dados pessoais sensíveis para fins de empregabilidade, conforme a LGPD.")
-        # -----------------------------------
 
         st.markdown("<br>", unsafe_allow_html=True)
         submit = st.form_submit_button("✅ SALVAR E GERAR CURRÍCULO")
 
     if submit:
-        # Adicionei a verificação 'and aceite_lgpd'
         if nome and email and area and cidade_input and bio and laudo_f and aceite_lgpd:
             cidade_final = f"{cidade_input} - {uf_input}"
             
+            # NOVO: Higienização do Telefone (Remove parenteses, traços e espaços)
+            tel_limpo = re.sub(r'\D', '', tel) if tel else ""
+
             novo_cadastro = {
                 "nome": nome, "email": email, "cidade": cidade_final, "area_atuacao": area,
-                "tipo_deficiencia": tipo_d, "bio": bio, "telefone": tel, "linkedin": link_in,
+                "tipo_deficiencia": tipo_d, "bio": bio, "telefone": tel_limpo, "linkedin": link_in,
                 "raca": raca, "orientacao_sexual": orientacao,
-                "data_aceite_lgpd": time.strftime("%Y-%m-%d %H:%M:%S") # Registrando a data do aceite
+                "data_aceite_lgpd": time.strftime("%Y-%m-%d %H:%M:%S"),
+                "home_office": home_office # Salva booleano (True/False)
             }
             
             with st.spinner("Processando dados e registrando consentimento..."):
