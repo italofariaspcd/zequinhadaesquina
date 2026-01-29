@@ -23,21 +23,19 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 def carregar_dados():
     try:
-        df = conn.read(ttl=5)
-        # Colunas esperadas incluindo os novos campos de diversidade
+        df = conn.read(ttl=10)
         colunas_esperadas = [
             "nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", 
-            "bio", "telefone", "linkedin", "raca", "orientacao_sexual"
+            "bio", "telefone", "linkedin", "raca", "orientacao_sexual", "data_aceite_lgpd"
         ]
         
-        # Verifica se o DF está vazio ou se faltam colunas (para evitar erros em planilhas novas)
         if df.empty or not set(colunas_esperadas).issubset(df.columns):
             return pd.DataFrame(columns=colunas_esperadas)
         return df
     except:
         return pd.DataFrame(columns=[
             "nome", "email", "cidade", "area_atuacao", "tipo_deficiencia", 
-            "bio", "telefone", "linkedin", "raca", "orientacao_sexual"
+            "bio", "telefone", "linkedin", "raca", "orientacao_sexual", "data_aceite_lgpd"
         ])
 
 def salvar_no_google_sheets(novo_dado_dict):
@@ -54,7 +52,6 @@ def salvar_no_google_sheets(novo_dado_dict):
 # --- FUNÇÃO DE EMAIL ---
 def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_cv=None):
     try:
-        # Tenta pegar as credenciais (necessário configurar .streamlit/secrets.toml)
         email_sender = st.secrets["email"]["usuario"]
         email_password = st.secrets["email"]["senha"]
         email_receiver = st.secrets["email"]["destinatario"]
@@ -65,7 +62,7 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         msg['Subject'] = f"📄 Novo Cadastro PCD: {dados['nome']} - {dados['area_atuacao']}"
 
         corpo = f"""
-        NOVO TALENTO CADASTRADO NO SISTEMA:
+        NOVO TALENTO CADASTRADO NO SISTEMA (LGPD ACEITO):
         
         Nome: {dados['nome']}
         Raça/Etnia: {dados.get('raca', 'N/A')}
@@ -76,6 +73,7 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         Email: {dados['email']}
         WhatsApp: {dados['telefone']}
         LinkedIn: {dados['linkedin']}
+        Data Aceite LGPD: {dados['data_aceite_lgpd']}
         
         Bio:
         {dados['bio']}
@@ -101,7 +99,6 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         server.quit()
         return True
     except Exception as e:
-        # Não exibe erro fatal para o usuário, apenas no log, para não travar a experiência
         print(f"Erro ao enviar email (verifique secrets): {e}")
         return False
 
@@ -116,9 +113,8 @@ st.markdown("""
     section[data-testid="stSidebar"] { background-color: rgba(15, 23, 42, 0.95); border-right: 1px solid rgba(255, 255, 255, 0.05); }
     
     h1, h2, h3 { color: white !important; }
-    p, label { color: #94A3B8 !important; }
+    p, label, .stCheckbox label { color: #94A3B8 !important; }
     
-    /* SIDEBAR RADIO BUTTONS */
     section[data-testid="stSidebar"] .stRadio label {
         color: #94A3B8 !important; font-weight: 500 !important; padding: 10px !important;
         margin-bottom: 5px !important; transition: all 0.2s ease-in-out !important; 
@@ -132,7 +128,6 @@ st.markdown("""
     }
     div[role="radiogroup"] div[aria-checked="true"] { background-color: #00FFA3 !important; border-color: #00FFA3 !important; }
     
-    /* CARDS */
     .card-talento, .vaga-card {
         background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
         padding: 25px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05);
@@ -141,12 +136,10 @@ st.markdown("""
     .card-talento:hover { transform: translateY(-5px); border-color: #00FFA3; }
     .vaga-card { border-left: 4px solid #00F2FF; }
     
-    /* INPUTS */
     .stTextInput input, .stTextArea textarea, .stSelectbox div[data-baseweb="select"] {
         background-color: #1E293B !important; color: white !important; border: 1px solid #334155 !important; border-radius: 10px !important;
     }
 
-    /* BUTTONS */
     div.stButton > button {
         background: linear-gradient(90deg, #00FFA3 0%, #00F2FF 100%) !important;
         color: #020617 !important; border: none !important; padding: 0.85rem 2rem !important;
@@ -158,6 +151,13 @@ st.markdown("""
     }
     
     div[data-testid="stMetricValue"] { color: #00FFA3 !important; }
+    
+    .share-link {
+        display: block; padding: 8px; margin: 5px 0; border-radius: 5px;
+        text-align: center; text-decoration: none; font-weight: bold; font-size: 0.8rem;
+    }
+    .share-wa { background-color: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid #25D366; }
+    .share-li { background-color: rgba(0, 119, 181, 0.1); color: #0077B5; border: 1px solid #0077B5; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -201,11 +201,19 @@ with st.sidebar:
     st.markdown("---")
     menu_opcao = st.radio("NAVEGAÇÃO", ["🏠 Início", "🔍 Buscar Talentos", "💼 Vagas em Aberto", "🚀 Cadastrar Perfil"], label_visibility="collapsed")
     st.markdown("---")
+    
+    st.markdown("<p style='text-align:center; font-size:0.8rem; margin-bottom:5px;'>📢 Espalhe a inclusão:</p>", unsafe_allow_html=True)
+    msg_share = urllib.parse.quote("Conheça o Zequinha da Esquina! O Ecossistema de empregabilidade PCD com inteligência de dados. Acesse: https://zequinhadaesquina.streamlit.app")
+    st.markdown(f"""
+        <a href="https://api.whatsapp.com/send?text={msg_share}" target="_blank" class="share-link share-wa">Compartilhar no WhatsApp</a>
+        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://zequinhadaesquina.streamlit.app" target="_blank" class="share-link share-li">Compartilhar no LinkedIn</a>
+    """, unsafe_allow_html=True)
+    
+    st.markdown("---")
     st.info("💡 **Conectado:** Google Cloud & Backup Email.")
 
 # --- PÁGINAS ---
 
-# 1. PÁGINA INICIAL
 if menu_opcao == "🏠 Início":
     st.markdown("""
         <div style="text-align: center; padding: 40px 0;">
@@ -233,8 +241,14 @@ if menu_opcao == "🏠 Início":
     c1.metric("Talentos Cadastrados", f"{total_talentos}")
     c2.metric("Estados Alcançados", f"{estados_alcancados}")
     c3.metric("Áreas de Atuação", f"{areas_distintas}")
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    if not df_metrics.empty and 'area_atuacao' in df_metrics.columns:
+        st.markdown("#### 📊 Distribuição de Talentos por Área")
+        chart_data = df_metrics['area_atuacao'].value_counts().head(10)
+        st.bar_chart(chart_data, color="#00FFA3")
+        st.caption("Top 10 áreas com mais profissionais cadastrados na plataforma.")
 
-# 2. PÁGINA DE BUSCA
 elif menu_opcao == "🔍 Buscar Talentos":
     st.markdown("## 🔍 Encontre o Profissional Ideal")
     with st.expander("🛠️ Filtros de Pesquisa Avançada", expanded=True):
@@ -272,7 +286,6 @@ elif menu_opcao == "🔍 Buscar Talentos":
                                 </div>
                             ''', unsafe_allow_html=True)
 
-# 3. PÁGINA DE VAGAS
 elif menu_opcao == "💼 Vagas em Aberto":
     st.markdown("## 💼 Oportunidades em Tempo Real (Brasil)")
     st.info("Busque vagas PCD nos maiores portais de recrutamento.")
@@ -287,7 +300,6 @@ elif menu_opcao == "💼 Vagas em Aberto":
         v1.markdown(f'''<div class="vaga-card"><h4>Google Jobs</h4><p>Buscar por: <b>{termo}</b></p><a href="https://www.google.com/search?q={q}&ibp=htl;jobs" target="_blank" style="color: #00FFA3; font-weight: bold;">VER VAGAS →</a></div>''', unsafe_allow_html=True)
         v2.markdown(f'''<div class="vaga-card"><h4>LinkedIn</h4><p>Vagas recentes</p><a href="https://www.linkedin.com/jobs/search/?keywords=PCD%20{q}" target="_blank" style="color: #00FFA3; font-weight: bold;">VER VAGAS →</a></div>''', unsafe_allow_html=True)
 
-# 4. PÁGINA DE CADASTRO
 elif menu_opcao == "🚀 Cadastrar Perfil":
     st.markdown("## 🚀 Crie seu Perfil Profissional")
     with st.form("form_cadastro"):
@@ -314,39 +326,51 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
         bio = st.text_area("Resumo Profissional (Bio)*", height=150)
 
         st.markdown("---")
-        st.markdown("#### 3. Documentação")
+        st.markdown("#### 3. Documentação & LGPD")
         cd1, cd2 = st.columns(2)
         with cd1: laudo_f = st.file_uploader("📂 Laudo PCD (Obrigatório)", type=["pdf", "jpg", "png"])
         with cd2: cv_f = st.file_uploader("📄 Currículo (Opcional)", type=["pdf"])
+
+        # --- SEÇÃO DE CONSENTIMENTO LGPD ---
+        st.markdown("<br>", unsafe_allow_html=True)
+        with st.expander("🛡️ Termo de Consentimento e Tratamento de Dados (LGPD) - Clique para ler", expanded=False):
+            st.markdown("""
+            **1. Finalidade:** Os dados coletados (incluindo laudos médicos e informações de diversidade) serão utilizados exclusivamente para a criação do seu currículo na plataforma e para conectar você a oportunidades de emprego.
+            
+            **2. Dados Sensíveis:** Ao concordar, você autoriza expressamente o tratamento de dados pessoais sensíveis (deficiência, raça, orientação sexual) para fins de ação afirmativa em processos seletivos (Art. 11 da Lei 13.709/2018).
+            
+            **3. Compartilhamento:** Seu perfil público exibirá seu nome, área, cidade e resumo. Dados de contato e laudos só serão compartilhados com recrutadores mediante sua autorização ou contato direto via plataforma.
+            
+            **4. Seus Direitos:** Você pode solicitar a exclusão ou alteração dos seus dados a qualquer momento enviando um email para o administrador do sistema.
+            """)
+        
+        aceite_lgpd = st.checkbox("✅ Declaro que li e concordo com o tratamento dos meus dados pessoais sensíveis para fins de empregabilidade, conforme a LGPD.")
+        # -----------------------------------
 
         st.markdown("<br>", unsafe_allow_html=True)
         submit = st.form_submit_button("✅ SALVAR E GERAR CURRÍCULO")
 
     if submit:
-        if nome and email and area and cidade_input and bio and laudo_f:
+        # Adicionei a verificação 'and aceite_lgpd'
+        if nome and email and area and cidade_input and bio and laudo_f and aceite_lgpd:
             cidade_final = f"{cidade_input} - {uf_input}"
             
-            # Montando o dicionário completo
             novo_cadastro = {
                 "nome": nome, "email": email, "cidade": cidade_final, "area_atuacao": area,
                 "tipo_deficiencia": tipo_d, "bio": bio, "telefone": tel, "linkedin": link_in,
-                "raca": raca, "orientacao_sexual": orientacao
+                "raca": raca, "orientacao_sexual": orientacao,
+                "data_aceite_lgpd": time.strftime("%Y-%m-%d %H:%M:%S") # Registrando a data do aceite
             }
             
-            with st.spinner("Processando dados..."):
-                # Salva no Sheets
+            with st.spinner("Processando dados e registrando consentimento..."):
                 salvou_sheet = salvar_no_google_sheets(novo_cadastro)
                 
-                # Prepara arquivos para email
                 laudo_bytes = laudo_f.read()
                 laudo_nome = laudo_f.name
                 cv_bytes = cv_f.read() if cv_f else None
                 cv_nome = cv_f.name if cv_f else None
                 
-                # Envia Email
                 enviar_email_backup(novo_cadastro, laudo_bytes, laudo_nome, cv_bytes, cv_nome)
-                
-                # Gera PDF para o usuário
                 pdf_bytes = gerar_pdf_pcd(novo_cadastro)
 
                 if salvou_sheet:
@@ -358,9 +382,11 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
                 else:
                     st.error("Erro ao conectar com a planilha. Tente novamente.")
         else:
-            st.error("⚠️ Preencha os campos obrigatórios (*).")
+            if not aceite_lgpd:
+                st.error("⚠️ Para continuar, você precisa ler e aceitar o Termo de Consentimento (LGPD).")
+            else:
+                st.error("⚠️ Preencha os campos obrigatórios (*).")
 
-    # Botão de Download pós-cadastro
     if st.session_state.get('novo_cadastro'):
         col_down1, col_down2, col_down3 = st.columns([1,2,1])
         with col_down2:
@@ -374,7 +400,6 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
             del st.session_state['novo_cadastro']
             st.rerun()
 
-# --- RODAPÉ PROFISSIONAL (COM CNPJ E MARCA TECH) ---
 st.markdown("""
 <hr style="border: 1px solid rgba(255, 255, 255, 0.05); margin-top: 50px; margin-bottom: 20px;">
 <div style="text-align: center; color: #94A3B8; font-size: 0.85rem; padding-bottom: 30px; line-height: 1.6;">
@@ -387,5 +412,4 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# --- ACESSIBILIDADE (VLIBRAS) ---
 st.components.v1.html("""<div vw class="enabled"><div vw-access-button class="active"></div><div vw-plugin-wrapper><div class="vw-plugin-top-wrapper"></div></div></div><script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script><script>new window.VLibras.Widget('https://vlibras.gov.br/app');</script>""", height=0)
