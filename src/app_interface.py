@@ -10,14 +10,14 @@ from streamlit_gsheets import GSheetsConnection
 import urllib.parse
 import re
 
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Zequinha da Esquina | Ecossistema PCD", page_icon="♿", layout="wide")
+
 # --- LISTA DE ESTADOS (CONSTANTE) ---
 ESTADOS_BRASIL = [
     "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", 
     "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
 ]
-
-# --- CONFIGURAÇÃO DA PÁGINA ---
-st.set_page_config(page_title="Zequinha da Esquina | Ecossistema PCD", page_icon="♿", layout="wide")
 
 # --- CONEXÃO COM GOOGLE SHEETS ---
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -31,11 +31,9 @@ def carregar_dados():
             "data_aceite_lgpd", "home_office"
         ]
         
-        # Garante a existência do DataFrame e das colunas, mesmo se vazio
         if df.empty:
             return pd.DataFrame(columns=colunas_esperadas)
             
-        # Schema Evolution: Cria colunas faltantes se a planilha for antiga
         for col in colunas_esperadas:
             if col not in df.columns:
                 df[col] = None
@@ -115,7 +113,7 @@ def enviar_email_backup(dados, arquivo_laudo, nome_laudo, arquivo_cv=None, nome_
         print(f"Erro ao enviar email (verifique secrets): {e}")
         return False
 
-# --- DESIGN SYSTEM PREMIUM (CSS) ---
+# --- DESIGN SYSTEM PREMIUM (CSS MELHORADO) ---
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;800&display=swap');
@@ -128,20 +126,25 @@ st.markdown("""
     h1, h2, h3 { color: white !important; }
     p, label, .stCheckbox label { color: #94A3B8 !important; }
     
-    /* Melhoria UX: Botões de Navegação mais visíveis */
+    /* MENU LATERAL DESTAQUE */
     section[data-testid="stSidebar"] .stRadio label {
-        color: #94A3B8 !important; font-weight: 500 !important; padding: 12px !important;
-        margin-bottom: 5px !important; transition: all 0.2s ease-in-out !important; 
-        border-left: 4px solid transparent; cursor: pointer;
+        color: #94A3B8 !important; font-weight: 600 !important; padding: 15px !important;
+        margin-bottom: 8px !important; transition: all 0.3s ease-in-out !important; 
+        border-left: 4px solid transparent; cursor: pointer; border-radius: 0 8px 8px 0;
+        background: rgba(255,255,255,0.02);
+    }
+    section[data-testid="stSidebar"] .stRadio label:hover {
+        background: rgba(255,255,255,0.05); color: white !important;
     }
     section[data-testid="stSidebar"] .stRadio label:has(div[aria-checked="true"]),
     section[data-testid="stSidebar"] .stRadio label:has(input:checked) {
         background: linear-gradient(90deg, rgba(0, 255, 163, 0.15) 0%, transparent 100%) !important;
         border-left: 4px solid #00FFA3 !important; color: #00FFA3 !important;
-        font-weight: 800 !important; border-radius: 0 10px 10px 0;
+        font-weight: 800 !important; box-shadow: 0 0 15px rgba(0, 255, 163, 0.1);
     }
     div[role="radiogroup"] div[aria-checked="true"] { background-color: #00FFA3 !important; border-color: #00FFA3 !important; }
     
+    /* CARDS */
     .card-talento, .vaga-card {
         background: linear-gradient(145deg, rgba(30, 41, 59, 0.6), rgba(15, 23, 42, 0.8));
         padding: 25px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05);
@@ -166,12 +169,22 @@ st.markdown("""
     
     div[data-testid="stMetricValue"] { color: #00FFA3 !important; }
     
-    .share-link {
-        display: block; padding: 8px; margin: 5px 0; border-radius: 5px;
-        text-align: center; text-decoration: none; font-weight: bold; font-size: 0.8rem;
+    /* BOTÕES DE COMPARTILHAMENTO ESTILIZADOS */
+    .social-btn {
+        display: flex; align-items: center; justify-content: center;
+        width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 8px;
+        text-decoration: none !important; font-weight: bold; font-size: 0.9rem;
+        transition: transform 0.2s ease, opacity 0.2s;
     }
-    .share-wa { background-color: rgba(37, 211, 102, 0.1); color: #25D366; border: 1px solid #25D366; }
-    .share-li { background-color: rgba(0, 119, 181, 0.1); color: #0077B5; border: 1px solid #0077B5; }
+    .btn-whatsapp {
+        background-color: #25D366; color: white !important; border: 1px solid #25D366;
+    }
+    .btn-linkedin {
+        background-color: #0077B5; color: white !important; border: 1px solid #0077B5;
+    }
+    .social-btn:hover {
+        opacity: 0.9; transform: scale(1.02);
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -211,14 +224,33 @@ def gerar_pdf_pcd(dados):
     
     return pdf.output(dest='S').encode('latin-1')
 
-# --- SIDEBAR ---
+# --- SIDEBAR (VISUAL REFORMULADO) ---
 with st.sidebar:
-    st.markdown("<h1 style='text-align: center;'>♿</h1>", unsafe_allow_html=True)
-    st.markdown("<h2 style='text-align: center; font-size: 1.5rem;'>Zequinha<br>da Esquina</h2>", unsafe_allow_html=True)
-    st.markdown("---")
-    menu_opcao = st.radio("NAVEGAÇÃO", ["🏠 Início", "🔍 Buscar Talentos", "💼 Vagas em Aberto", "🚀 Cadastrar Perfil"], label_visibility="collapsed")
+    st.markdown("<h1 style='text-align: center; margin-bottom: 0;'>♿</h1>", unsafe_allow_html=True)
+    st.markdown("<h2 style='text-align: center; font-size: 1.5rem; margin-top: 0;'>Zequinha<br>da Esquina</h2>", unsafe_allow_html=True)
+    
     st.markdown("---")
     
+    # Cabeçalho do Menu para chamar atenção
+    st.markdown("<p style='font-size: 0.8rem; font-weight: bold; color: #64748B; letter-spacing: 1px; margin-bottom: 5px;'>📍 MENU PRINCIPAL</p>", unsafe_allow_html=True)
+    
+    menu_opcao = st.radio("NAVEGAÇÃO", ["🏠 Início", "🔍 Buscar Talentos", "💼 Vagas em Aberto", "🚀 Cadastrar Perfil"], label_visibility="collapsed")
+    
+    st.markdown("---")
+    
+    # SEÇÃO DE COMPARTILHAMENTO (NOVO VISUAL)
+    st.markdown("<p style='text-align:center; font-size:0.9rem; font-weight:bold; margin-bottom:10px;'>📢 Espalhe a Inclusão</p>", unsafe_allow_html=True)
+    
+    msg_share = urllib.parse.quote("Conheça o Zequinha da Esquina! O Ecossistema de empregabilidade PCD com inteligência de dados. Acesse: https://zequinhadaesquina.streamlit.app")
+    
+    c_share1, c_share2 = st.columns(2)
+    with c_share1:
+        st.markdown(f'<a href="https://api.whatsapp.com/send?text={msg_share}" target="_blank" class="social-btn btn-whatsapp">WhatsApp</a>', unsafe_allow_html=True)
+    with c_share2:
+        st.markdown(f'<a href="https://www.linkedin.com/sharing/share-offsite/?url=https://zequinhadaesquina.streamlit.app" target="_blank" class="social-btn btn-linkedin">LinkedIn</a>', unsafe_allow_html=True)
+
+    st.markdown("---")
+
     with st.expander("👨‍💻 Sobre o Desenvolvedor"):
         st.markdown("""
         <div style="font-size: 0.85rem; color: #CBD5E1;">
@@ -228,14 +260,6 @@ with st.sidebar:
         </div>
         """, unsafe_allow_html=True)
     
-    st.markdown("<p style='text-align:center; font-size:0.8rem; margin-bottom:5px; margin-top:20px;'>📢 Espalhe a inclusão:</p>", unsafe_allow_html=True)
-    msg_share = urllib.parse.quote("Conheça o Zequinha da Esquina! O Ecossistema de empregabilidade PCD com inteligência de dados. Acesse: https://zequinhadaesquina.streamlit.app")
-    st.markdown(f"""
-        <a href="https://api.whatsapp.com/send?text={msg_share}" target="_blank" class="share-link share-wa">Compartilhar no WhatsApp</a>
-        <a href="https://www.linkedin.com/sharing/share-offsite/?url=https://zequinhadaesquina.streamlit.app" target="_blank" class="share-link share-li">Compartilhar no LinkedIn</a>
-    """, unsafe_allow_html=True)
-    
-    st.markdown("---")
     st.info("💡 **Conectado:** Google Cloud & Backup Email.")
 
 # --- PÁGINAS ---
@@ -252,6 +276,7 @@ if menu_opcao == "🏠 Início":
         </div>
     """, unsafe_allow_html=True)
     
+    # --- MÉTRICAS ---
     total_talentos, estados_alcancados, areas_distintas = 0, 0, 0
     df_metrics = carregar_dados()
     
@@ -271,9 +296,14 @@ if menu_opcao == "🏠 Início":
     st.markdown("---")
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # --- NOVA SEÇÃO DE UX (Substituindo o Gráfico) ---
-    st.markdown("<h3 style='text-align:center;'>🚀 Como funciona o ecossistema?</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align:center; margin-bottom: 30px;'>Conectamos talentos reais a oportunidades reais, sem burocracia.</p>", unsafe_allow_html=True)
+    # --- SEÇÃO UX: COMO FUNCIONA (Com dica de navegação) ---
+    st.markdown("""
+    <div style="text-align:center;">
+        <h3>🚀 Como funciona o ecossistema?</h3>
+        <p style="color: #94A3B8;">Para começar, selecione uma opção no <b>Menu Lateral 👈</b></p>
+    </div>
+    <br>
+    """, unsafe_allow_html=True)
 
     col_ux1, col_ux2, col_ux3 = st.columns(3)
     
@@ -398,7 +428,6 @@ elif menu_opcao == "🚀 Cadastrar Perfil":
         if nome and email and area and cidade_input and bio and laudo_f and aceite_lgpd:
             cidade_final = f"{cidade_input} - {uf_input}"
             
-            # Higienização do Telefone
             tel_limpo = re.sub(r'\D', '', tel) if tel else ""
 
             novo_cadastro = {
